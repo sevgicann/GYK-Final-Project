@@ -5,7 +5,7 @@ import psycopg2
 conn = psycopg2.connect(
     dbname="soil_db",
     user="postgres",
-    password="new.pass3",
+    password="12345",
     host="localhost",
     port="5432"
 )
