@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import '../core/theme/app_theme.dart';
 import '../core/validation/validators.dart';
 import '../core/navigation/app_router.dart';
-import '../widgets/custom_text_field.dart';
-import '../widgets/custom_dropdown.dart';
-import '../widgets/custom_button.dart';
-import '../widgets/custom_card.dart';
+import '../core/widgets/app_button.dart';
+import '../core/utils/app_extensions.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -23,6 +21,8 @@ class _RegisterPageState extends State<RegisterPage> {
   
   String _selectedLanguage = 'Türkçe';
   bool _isLoading = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
   final List<String> _languages = [
     'Türkçe',
@@ -82,14 +82,24 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   Widget _buildLanguageSelector() {
-    return CustomDropdown<String>(
-      label: 'Dil Seçin',
-      value: _selectedLanguage,
-      items: _languages,
-      onChanged: (value) {
-        if (value != null) {
+    return DropdownButtonFormField<String>(
+      initialValue: _selectedLanguage,
+      decoration: const InputDecoration(
+        labelText: 'Dil Seçin',
+        border: OutlineInputBorder(),
+        filled: true,
+        fillColor: AppTheme.surfaceColor,
+      ),
+      items: _languages.map((String language) {
+        return DropdownMenuItem<String>(
+          value: language,
+          child: Text(language),
+        );
+      }).toList(),
+      onChanged: (String? newValue) {
+        if (newValue != null) {
           setState(() {
-            _selectedLanguage = value;
+            _selectedLanguage = newValue;
           });
         }
       },
@@ -134,42 +144,78 @@ class _RegisterPageState extends State<RegisterPage> {
   Widget _buildFormFields() {
     return Column(
       children: [
-        CustomTextField(
-          label: 'Ad Soyad',
+        TextFormField(
           controller: _nameController,
+          decoration: const InputDecoration(
+            labelText: 'Ad Soyad',
+            border: OutlineInputBorder(),
+            filled: true,
+            fillColor: AppTheme.surfaceColor,
+          ),
           validator: Validators.name,
-          isRequired: true,
         ),
         const SizedBox(height: AppTheme.paddingLarge),
-        CustomTextField(
-          label: 'E-posta',
+        TextFormField(
           controller: _emailController,
           keyboardType: TextInputType.emailAddress,
+          decoration: const InputDecoration(
+            labelText: 'E-posta',
+            border: OutlineInputBorder(),
+            filled: true,
+            fillColor: AppTheme.surfaceColor,
+          ),
           validator: Validators.email,
-          isRequired: true,
         ),
         const SizedBox(height: AppTheme.paddingLarge),
-        CustomTextField(
-          label: 'Şifre',
+        TextFormField(
           controller: _passwordController,
-          isPassword: true,
+          obscureText: _obscurePassword,
+          decoration: InputDecoration(
+            labelText: 'Şifre',
+            border: const OutlineInputBorder(),
+            filled: true,
+            fillColor: AppTheme.surfaceColor,
+            suffixIcon: IconButton(
+              icon: Icon(
+                _obscurePassword ? Icons.visibility_off : Icons.visibility,
+              ),
+              onPressed: () {
+                setState(() {
+                  _obscurePassword = !_obscurePassword;
+                });
+              },
+            ),
+          ),
           validator: Validators.password,
-          isRequired: true,
         ),
         const SizedBox(height: AppTheme.paddingLarge),
-        CustomTextField(
-          label: 'Şifre Tekrar',
+        TextFormField(
           controller: _confirmPasswordController,
-          isPassword: true,
+          obscureText: _obscureConfirmPassword,
+          decoration: InputDecoration(
+            labelText: 'Şifre Tekrar',
+            border: const OutlineInputBorder(),
+            filled: true,
+            fillColor: AppTheme.surfaceColor,
+            suffixIcon: IconButton(
+              icon: Icon(
+                _obscureConfirmPassword ? Icons.visibility_off : Icons.visibility,
+              ),
+              onPressed: () {
+                setState(() {
+                  _obscureConfirmPassword = !_obscureConfirmPassword;
+                });
+              },
+            ),
+          ),
           validator: (value) => Validators.confirmPassword(value, _passwordController.text),
-          isRequired: true,
         ),
       ],
     );
   }
 
   Widget _buildCreateAccountButton() {
-    return CustomButton(
+    return AppButton(
       text: 'Hesap Oluştur',
       onPressed: _handleCreateAccount,
       isLoading: _isLoading,
@@ -196,12 +242,7 @@ class _RegisterPageState extends State<RegisterPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Hesap oluşturulurken hata oluştu: $e'),
-            backgroundColor: AppTheme.errorColor,
-          ),
-        );
+        context.showSnackBar('Hesap oluşturulurken hata oluştu: $e');
       }
     } finally {
       if (mounted) {

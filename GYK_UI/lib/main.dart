@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'core/theme/app_theme.dart';
 import 'core/navigation/app_router.dart';
-import 'pages/register_page.dart';
 
 void main() {
   runApp(const TerramindApp());
