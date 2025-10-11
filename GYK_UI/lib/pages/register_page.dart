@@ -91,6 +91,10 @@ class _RegisterPageState extends State<RegisterPage> {
       initialValue: _selectedLanguage,
       decoration: const InputDecoration(
         labelText: 'Dil Seçin',
+        prefixIcon: Icon(
+          Icons.language,
+          color: AppTheme.primaryColor,
+        ),
         border: OutlineInputBorder(),
         filled: true,
         fillColor: AppTheme.surfaceColor,
@@ -153,6 +157,10 @@ class _RegisterPageState extends State<RegisterPage> {
           controller: _nameController,
           decoration: const InputDecoration(
             labelText: 'Ad Soyad',
+            prefixIcon: Icon(
+              Icons.person_outline,
+              color: AppTheme.primaryColor,
+            ),
             border: OutlineInputBorder(),
             filled: true,
             fillColor: AppTheme.surfaceColor,
@@ -165,6 +173,10 @@ class _RegisterPageState extends State<RegisterPage> {
           keyboardType: TextInputType.emailAddress,
           decoration: const InputDecoration(
             labelText: 'E-posta',
+            prefixIcon: Icon(
+              Icons.email_outlined,
+              color: AppTheme.primaryColor,
+            ),
             border: OutlineInputBorder(),
             filled: true,
             fillColor: AppTheme.surfaceColor,
@@ -177,12 +189,17 @@ class _RegisterPageState extends State<RegisterPage> {
           obscureText: _obscurePassword,
           decoration: InputDecoration(
             labelText: 'Şifre',
+            prefixIcon: const Icon(
+              Icons.lock_outline,
+              color: AppTheme.primaryColor,
+            ),
             border: const OutlineInputBorder(),
             filled: true,
             fillColor: AppTheme.surfaceColor,
             suffixIcon: IconButton(
               icon: Icon(
                 _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                color: AppTheme.textSecondaryColor,
               ),
               onPressed: () {
                 setState(() {
@@ -199,12 +216,17 @@ class _RegisterPageState extends State<RegisterPage> {
           obscureText: _obscureConfirmPassword,
           decoration: InputDecoration(
             labelText: 'Şifre Tekrar',
+            prefixIcon: const Icon(
+              Icons.lock_outline,
+              color: AppTheme.primaryColor,
+            ),
             border: const OutlineInputBorder(),
             filled: true,
             fillColor: AppTheme.surfaceColor,
             suffixIcon: IconButton(
               icon: Icon(
                 _obscureConfirmPassword ? Icons.visibility_off : Icons.visibility,
+                color: AppTheme.textSecondaryColor,
               ),
               onPressed: () {
                 setState(() {

@@ -38,15 +38,6 @@ class _LoginPageState extends State<LoginPage> {
           icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimaryColor),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text(
-          'Giriş Yap',
-          style: TextStyle(
-            color: AppTheme.textPrimaryColor,
-            fontWeight: AppTheme.fontWeightBold,
-            fontSize: AppTheme.fontSizeXLarge,
-          ),
-        ),
-        centerTitle: true,
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -136,6 +127,10 @@ class _LoginPageState extends State<LoginPage> {
           keyboardType: TextInputType.emailAddress,
           decoration: const InputDecoration(
             labelText: 'E-posta',
+            prefixIcon: Icon(
+              Icons.email_outlined,
+              color: AppTheme.primaryColor,
+            ),
             border: OutlineInputBorder(),
             filled: true,
             fillColor: AppTheme.surfaceColor,
@@ -148,12 +143,17 @@ class _LoginPageState extends State<LoginPage> {
           obscureText: _obscurePassword,
           decoration: InputDecoration(
             labelText: 'Şifre',
+            prefixIcon: const Icon(
+              Icons.lock_outline,
+              color: AppTheme.primaryColor,
+            ),
             border: const OutlineInputBorder(),
             filled: true,
             fillColor: AppTheme.surfaceColor,
             suffixIcon: IconButton(
               icon: Icon(
                 _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                color: AppTheme.textSecondaryColor,
               ),
               onPressed: () {
                 setState(() {
