@@ -36,8 +36,8 @@ def register():
                 'message': 'Request data is required'
             }), 400
         
-        name = data.get('name', '').strip()
-        email = data.get('email', '').strip().lower()
+        name = (data.get('name') or '').strip()
+        email = (data.get('email') or '').strip().lower()
         password = data.get('password', '')
         language = data.get('language', 'tr')
         
@@ -166,7 +166,7 @@ def login():
                 'message': 'Request data is required'
             }), 400
         
-        email = data.get('email', '').strip().lower()
+        email = (data.get('email') or '').strip().lower()
         password = data.get('password', '')
         
         # Validation
@@ -277,16 +277,16 @@ def update_profile():
         
         # Update allowed fields
         if 'name' in data:
-            user.name = data['name'].strip()
+            user.name = (data['name'] or '').strip()
         
         if 'language' in data:
             user.language = data['language']
         
         if 'city' in data:
-            user.city = data['city'].strip()
+            user.city = (data['city'] or '').strip()
         
         if 'district' in data:
-            user.district = data['district'].strip()
+            user.district = (data['district'] or '').strip()
         
         if 'latitude' in data:
             user.latitude = data['latitude']

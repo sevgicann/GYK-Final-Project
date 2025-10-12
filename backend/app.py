@@ -122,6 +122,10 @@ app.register_blueprint(products_bp, url_prefix='/api/products')
 app.register_blueprint(environments_bp, url_prefix='/api/environments')
 app.register_blueprint(recommendations_bp, url_prefix='/api/recommendations')
 
+# Import and register product selection blueprint
+from routes.product_selection import product_selection_bp
+app.register_blueprint(product_selection_bp, url_prefix='/api/product-selection')
+
 # Health check endpoint
 @app.route('/health', methods=['GET'])
 def health_check():
@@ -183,7 +187,7 @@ def test_login():
                 'message': 'Request data is required'
             }), 400
         
-        email = data.get('email', '').strip().lower()
+        email = (data.get('email') or '').strip().lower()
         password = data.get('password', '')
         
         # Simple validation
@@ -253,8 +257,8 @@ def test_register():
             }), 400
         
         # Extract user information (only basic fields)
-        name = data.get('name', '').strip()
-        email = data.get('email', '').strip().lower()
+        name = (data.get('name') or '').strip()
+        email = (data.get('email') or '').strip().lower()
         password = data.get('password', '')
         
         # Validation
