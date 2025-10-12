@@ -1,0 +1,348 @@
+from flask import Blueprint, request, jsonify
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from models.user import User
+from app import db
+import re
+from utils.logger import log_api_call, get_logger, log_info, log_error, log_success
+
+auth_bp = Blueprint('auth', __name__)
+
+def validate_email(email):
+    """Validate email format"""
+    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    return re.match(pattern, email) is not None
+
+def validate_password(password):
+    """Validate password strength"""
+    if len(password) < 6:
+        return False, "Password must be at least 6 characters long"
+    return True, "Password is valid"
+
+@auth_bp.route('/register', methods=['POST'])
+@log_api_call
+def register():
+    """Register a new user"""
+    logger = get_logger('routes.auth')
+    log_info("Starting user registration process")
+    
+    try:
+        data = request.get_json()
+        logger.debug(f"Registration request data: {data}")
+        
+        # Validate required fields
+        if not data:
+            return jsonify({
+                'success': False,
+                'message': 'Request data is required'
+            }), 400
+        
+        name = data.get('name', '').strip()
+        email = data.get('email', '').strip().lower()
+        password = data.get('password', '')
+        language = data.get('language', 'tr')
+        
+        # Validation
+        if not name:
+            return jsonify({
+                'success': False,
+                'message': 'Name is required'
+            }), 400
+        
+        if not email:
+            return jsonify({
+                'success': False,
+                'message': 'Email is required'
+            }), 400
+        
+        if not validate_email(email):
+            return jsonify({
+                'success': False,
+                'message': 'Invalid email format'
+            }), 400
+        
+        if not password:
+            return jsonify({
+                'success': False,
+                'message': 'Password is required'
+            }), 400
+        
+        is_valid, message = validate_password(password)
+        if not is_valid:
+            return jsonify({
+                'success': False,
+                'message': message
+            }), 400
+        
+        # Check if user already exists
+        if User.find_by_email(email):
+            return jsonify({
+                'success': False,
+                'message': 'User with this email already exists'
+            }), 409
+        
+        # Create new user
+        user = User(
+            name=name,
+            email=email,
+            language=language
+        )
+        user.set_password(password)
+        
+        db.session.add(user)
+        db.session.commit()
+        
+        # Generate token
+        token = user.generate_token()
+        
+        return jsonify({
+            'success': True,
+            'message': 'User registered successfully',
+            'data': {
+                'user': user.to_dict(),
+                'token': token
+            }
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'message': 'Registration failed',
+            'error': str(e)
+        }), 500
+
+@auth_bp.route('/login', methods=['POST'])
+def login():
+    """Login user"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({
+                'success': False,
+                'message': 'Request data is required'
+            }), 400
+        
+        email = data.get('email', '').strip().lower()
+        password = data.get('password', '')
+        
+        # Validation
+        if not email:
+            return jsonify({
+                'success': False,
+                'message': 'Email is required'
+            }), 400
+        
+        if not password:
+            return jsonify({
+                'success': False,
+                'message': 'Password is required'
+            }), 400
+        
+        # Find user
+        user = User.find_by_email(email)
+        if not user:
+            return jsonify({
+                'success': False,
+                'message': 'Invalid email or password'
+            }), 401
+        
+        # Check password
+        if not user.check_password(password):
+            return jsonify({
+                'success': False,
+                'message': 'Invalid email or password'
+            }), 401
+        
+        # Check if user is active
+        if not user.is_active:
+            return jsonify({
+                'success': False,
+                'message': 'Account is deactivated'
+            }), 401
+        
+        # Update last login
+        user.update_last_login()
+        
+        # Generate token
+        token = user.generate_token()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Login successful',
+            'data': {
+                'user': user.to_dict(),
+                'token': token
+            }
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': 'Login failed',
+            'error': str(e)
+        }), 500
+
+@auth_bp.route('/me', methods=['GET'])
+@jwt_required()
+def get_current_user():
+    """Get current user information"""
+    try:
+        user_id = get_jwt_identity()
+        user = User.find_by_id(user_id)
+        
+        if not user:
+            return jsonify({
+                'success': False,
+                'message': 'User not found'
+            }), 404
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'user': user.to_dict()
+            }
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': 'Failed to get user information',
+            'error': str(e)
+        }), 500
+
+@auth_bp.route('/update-profile', methods=['PUT'])
+@jwt_required()
+def update_profile():
+    """Update user profile"""
+    try:
+        user_id = get_jwt_identity()
+        user = User.find_by_id(user_id)
+        
+        if not user:
+            return jsonify({
+                'success': False,
+                'message': 'User not found'
+            }), 404
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({
+                'success': False,
+                'message': 'Request data is required'
+            }), 400
+        
+        # Update allowed fields
+        if 'name' in data:
+            user.name = data['name'].strip()
+        
+        if 'language' in data:
+            user.language = data['language']
+        
+        if 'city' in data:
+            user.city = data['city'].strip()
+        
+        if 'district' in data:
+            user.district = data['district'].strip()
+        
+        if 'latitude' in data:
+            user.latitude = data['latitude']
+        
+        if 'longitude' in data:
+            user.longitude = data['longitude']
+        
+        if 'is_gps_enabled' in data:
+            user.is_gps_enabled = data['is_gps_enabled']
+        
+        if 'notifications_enabled' in data:
+            user.notifications_enabled = data['notifications_enabled']
+        
+        if 'theme' in data:
+            user.theme = data['theme']
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Profile updated successfully',
+            'data': {
+                'user': user.to_dict()
+            }
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'message': 'Failed to update profile',
+            'error': str(e)
+        }), 500
+
+@auth_bp.route('/change-password', methods=['PUT'])
+@jwt_required()
+def change_password():
+    """Change user password"""
+    try:
+        user_id = get_jwt_identity()
+        user = User.find_by_id(user_id)
+        
+        if not user:
+            return jsonify({
+                'success': False,
+                'message': 'User not found'
+            }), 404
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({
+                'success': False,
+                'message': 'Request data is required'
+            }), 400
+        
+        current_password = data.get('current_password', '')
+        new_password = data.get('new_password', '')
+        
+        # Validation
+        if not current_password:
+            return jsonify({
+                'success': False,
+                'message': 'Current password is required'
+            }), 400
+        
+        if not new_password:
+            return jsonify({
+                'success': False,
+                'message': 'New password is required'
+            }), 400
+        
+        # Check current password
+        if not user.check_password(current_password):
+            return jsonify({
+                'success': False,
+                'message': 'Current password is incorrect'
+            }), 401
+        
+        # Validate new password
+        is_valid, message = validate_password(new_password)
+        if not is_valid:
+            return jsonify({
+                'success': False,
+                'message': message
+            }), 400
+        
+        # Update password
+        user.set_password(new_password)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Password changed successfully'
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'message': 'Failed to change password',
+            'error': str(e)
+        }), 500

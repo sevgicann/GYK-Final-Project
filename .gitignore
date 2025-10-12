@@ -1,3 +1,11 @@
 venv
 GYK_UI/.metadata
 GYK_UI/pubspec.lock
+backend/venv
+backend/.env
+backend/.dockerignore
+backend/__pycache__/
+backend/logs/*.log
+backend/models/__pycache__/
+backend/routes/__pycache__/
+backend/utils/__pycache__/
