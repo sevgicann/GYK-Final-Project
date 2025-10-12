@@ -4,6 +4,7 @@ import '../core/validation/validators.dart';
 import '../core/navigation/app_router.dart';
 import '../core/widgets/app_button.dart';
 import '../core/utils/app_extensions.dart';
+import '../services/auth_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -16,6 +17,7 @@ class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _authService = AuthService();
   
   bool _isLoading = false;
   bool _obscurePassword = true;
@@ -213,15 +215,23 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     try {
-      // Simüle edilmiş giriş işlemi
-      await Future.delayed(const Duration(seconds: 1));
+      print('🚀 Starting login process...');
+      
+      // Backend'e login isteği gönder
+      final user = await _authService.login(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+
+      print('✅ Login successful for user: ${user.name}');
       
       // Başarılı giriş sonrası ürün seçimi sayfasına yönlendir
       if (mounted) {
-        context.showSnackBar('Giriş başarılı!');
+        context.showSnackBar('Giriş başarılı! Hoş geldin ${user.name}');
         AppRouter.navigateAndReplace(context, AppRouter.productSelection);
       }
     } catch (e) {
+      print('❌ Login error: $e');
       if (mounted) {
         context.showSnackBar('Giriş yapılırken hata oluştu: $e');
       }

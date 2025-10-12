@@ -122,7 +122,18 @@ terramind_logger = TerramindLogger()
 
 def get_logger(name: str = None) -> logging.Logger:
     """Get a logger instance"""
-    return terramind_logger.get_logger(name)
+    logger = terramind_logger.get_logger(name)
+    
+    # Add success method to logger
+    def success(self, msg, *args, **kwargs):
+        """Log a success message"""
+        self.info(f"✅ {msg}", *args, **kwargs)
+    
+    # Bind success method to logger instance
+    import types
+    logger.success = types.MethodType(success, logger)
+    
+    return logger
 
 def log_function_call(func: Callable) -> Callable:
     """Decorator to log function calls with parameters and execution time"""

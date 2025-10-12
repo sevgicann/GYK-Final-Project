@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'api_service.dart';
 import '../core/config/api_config.dart';
@@ -28,10 +29,11 @@ class AuthService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('auth_token');
-      final userJson = prefs.getString('user_data');
+      final userJsonString = prefs.getString('user_data');
 
-      if (token != null && userJson != null) {
+      if (token != null && userJsonString != null) {
         _authToken = token;
+        final userJson = json.decode(userJsonString) as Map<String, dynamic>;
         _currentUser = User.fromJson(userJson);
         _apiService.setAuthToken(token);
       }
@@ -46,7 +48,7 @@ class AuthService {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('auth_token', token);
-      await prefs.setString('user_data', user.toJson());
+      await prefs.setString('user_data', json.encode(user.toJson()));
     } catch (e) {
       throw Exception('Failed to store authentication data: $e');
     }
@@ -54,34 +56,51 @@ class AuthService {
 
   // Register new user
   Future<User> register({
+    required String name,
     required String email,
     required String password,
-    required String firstName,
-    required String lastName,
-    String? phone,
   }) async {
     try {
+      print('📝 Attempting registration for: $email');
+      
       final response = await _apiService.post(
-        '${ApiConfig.authEndpoint}/register',
+        '${ApiConfig.authEndpoint}/register', // Gerçek endpoint
         body: {
+          'name': name,
           'email': email,
           'password': password,
-          'first_name': firstName,
-          'last_name': lastName,
-          'phone': phone,
         },
+        requireAuth: false,
       );
 
-      final user = User.fromJson(response['user']);
-      final token = response['access_token'];
+      print('✅ Registration response received: ${response['success']}');
 
-      _currentUser = user;
-      _authToken = token;
-      _apiService.setAuthToken(token);
+      if (response['success'] == true) {
+        final userData = response['data']['user'];
+        final token = response['data']['token'];
 
-      await _storeAuth(token, user);
+        // Backend'deki user formatını frontend formatına çevir
+        final user = User(
+          id: userData['id']?.toString() ?? '',
+          firstName: userData['name']?.split(' ')[0] ?? '',
+          lastName: userData['name']?.split(' ').skip(1).join(' ') ?? '',
+          email: userData['email'] ?? '',
+          phone: userData['phone'],
+          createdAt: DateTime.parse(userData['created_at'] ?? DateTime.now().toIso8601String()),
+          updatedAt: DateTime.parse(userData['updated_at'] ?? DateTime.now().toIso8601String()),
+        );
 
-      return user;
+        _currentUser = user;
+        _authToken = token;
+        _apiService.setAuthToken(token);
+
+        await _storeAuth(token, user);
+
+        print('✅ Registration successful for user: ${user.name}');
+        return user;
+      } else {
+        throw Exception(response['message'] ?? 'Registration failed');
+      }
     } catch (e) {
       throw Exception('Registration failed: $e');
     }
@@ -93,25 +112,47 @@ class AuthService {
     required String password,
   }) async {
     try {
+      print('🔐 Attempting login for: $email');
+      
       final response = await _apiService.post(
-        '${ApiConfig.authEndpoint}/login',
+        '${ApiConfig.authEndpoint}/login', // Gerçek endpoint
         body: {
           'email': email,
           'password': password,
         },
+        requireAuth: false,
       );
 
-      final user = User.fromJson(response['user']);
-      final token = response['access_token'];
+      print('✅ Login response received: ${response['success']}');
 
-      _currentUser = user;
-      _authToken = token;
-      _apiService.setAuthToken(token);
+      if (response['success'] == true) {
+        final userData = response['data']['user'];
+        final token = response['data']['token'];
 
-      await _storeAuth(token, user);
+        // Backend'deki user formatını frontend formatına çevir
+        final user = User(
+          id: userData['id']?.toString() ?? '',
+          firstName: userData['name']?.split(' ')[0] ?? '',
+          lastName: userData['name']?.split(' ').skip(1).join(' ') ?? '',
+          email: userData['email'] ?? '',
+          phone: userData['phone'],
+          createdAt: DateTime.parse(userData['created_at'] ?? DateTime.now().toIso8601String()),
+          updatedAt: DateTime.parse(userData['updated_at'] ?? DateTime.now().toIso8601String()),
+        );
 
-      return user;
+        _currentUser = user;
+        _authToken = token;
+        _apiService.setAuthToken(token);
+
+        await _storeAuth(token, user);
+
+        print('✅ Login successful for user: ${user.name}');
+        return user;
+      } else {
+        throw Exception(response['message'] ?? 'Login failed');
+      }
     } catch (e) {
+      print('❌ Login failed: $e');
       throw Exception('Login failed: $e');
     }
   }

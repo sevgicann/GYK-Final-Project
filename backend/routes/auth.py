@@ -41,6 +41,38 @@ def register():
         password = data.get('password', '')
         language = data.get('language', 'tr')
         
+        # Extract additional user information
+        phone = data.get('phone', '')
+        city = data.get('city', '')
+        district = data.get('district', '')
+        latitude = data.get('latitude', '')
+        longitude = data.get('longitude', '')
+        is_gps_enabled = data.get('is_gps_enabled', False)
+        notifications_enabled = data.get('notifications_enabled', True)
+        theme = data.get('theme', 'light')
+        
+        # Detailed logging of user registration data
+        logger.info("=" * 60)
+        logger.info("NEW USER REGISTRATION ATTEMPT:")
+        logger.info(f"  Personal Information:")
+        logger.info(f"    - Name: {name}")
+        logger.info(f"    - Email: {email}")
+        logger.info(f"    - Phone: {phone if phone else 'Not provided'}")
+        logger.info(f"    - Language: {language}")
+        logger.info(f"  Location Information:")
+        logger.info(f"    - City: {city if city else 'Not provided'}")
+        logger.info(f"    - District: {district if district else 'Not provided'}")
+        logger.info(f"    - Latitude: {latitude if latitude else 'Not provided'}")
+        logger.info(f"    - Longitude: {longitude if longitude else 'Not provided'}")
+        logger.info(f"    - GPS Enabled: {is_gps_enabled}")
+        logger.info(f"  Preferences:")
+        logger.info(f"    - Notifications Enabled: {notifications_enabled}")
+        logger.info(f"    - Theme: {theme}")
+        logger.info(f"  Security:")
+        logger.info(f"    - Password Length: {len(password) if password else 0} characters")
+        logger.info(f"    - Password Hash: {'*' * 20} (hidden for security)")
+        logger.info("=" * 60)
+        
         # Validation
         if not name:
             return jsonify({
@@ -93,6 +125,17 @@ def register():
         
         # Generate token
         token = user.generate_token()
+        
+        # Log successful registration
+        logger.info("=" * 60)
+        logger.info("✅ USER REGISTRATION SUCCESSFUL:")
+        logger.info(f"  User ID: {user.id}")
+        logger.info(f"  Name: {user.name}")
+        logger.info(f"  Email: {user.email}")
+        logger.info(f"  Language: {user.language}")
+        logger.info(f"  Registration Time: {user.created_at}")
+        logger.info(f"  Token Generated: {'Yes' if token else 'No'}")
+        logger.info("=" * 60)
         
         return jsonify({
             'success': True,

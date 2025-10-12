@@ -181,6 +181,13 @@ class _HomePageState extends State<HomePage> {
           subtitle: 'Bölgenize uygun öneriler alın',
           onTap: () => Navigator.pushNamed(context, AppRouter.environmentRecommendation),
         ),
+        const SizedBox(height: AppTheme.paddingMedium),
+        AppIconCard(
+          icon: Icons.psychology,
+          title: 'Tarım Önerisi',
+          subtitle: 'Backend\'den akıllı öneriler alın',
+          onTap: () => AppRouter.navigateTo(context, AppRouter.environmentRecommendation),
+        ),
       ],
     );
   }

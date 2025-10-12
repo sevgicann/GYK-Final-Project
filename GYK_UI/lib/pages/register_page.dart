@@ -4,6 +4,7 @@ import '../core/validation/validators.dart';
 import '../core/navigation/app_router.dart';
 import '../core/widgets/app_button.dart';
 import '../core/utils/app_extensions.dart';
+import '../services/auth_service.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -23,6 +24,8 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  
+  final _authService = AuthService();
 
   final List<String> _languages = [
     'Türkçe',
@@ -287,14 +290,24 @@ class _RegisterPageState extends State<RegisterPage> {
     });
 
     try {
-      // Simüle edilmiş API çağrısı
-      await Future.delayed(const Duration(seconds: 1));
+      print('🚀 Starting registration process...');
       
-      // Başarılı kayıt sonrası direkt ürün seçimi sayfasına yönlendir
+      // Backend'e register isteği gönder
+      final user = await _authService.register(
+        name: _nameController.text.trim(),
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+
+      print('✅ Registration successful for user: ${user.name}');
+      
+      // Başarılı kayıt sonrası ürün seçimi sayfasına yönlendir
       if (mounted) {
+        context.showSnackBar('Hesap başarıyla oluşturuldu! Hoş geldin ${user.name}');
         AppRouter.navigateAndReplace(context, AppRouter.productSelection);
       }
     } catch (e) {
+      print('❌ Registration error: $e');
       if (mounted) {
         context.showSnackBar('Hesap oluşturulurken hata oluştu: $e');
       }

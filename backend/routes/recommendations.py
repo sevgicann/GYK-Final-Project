@@ -6,8 +6,49 @@ from models.product import Product
 from models.environment import Environment
 from app import db
 from datetime import datetime
+from utils.logger import log_api_call, get_logger, log_info, log_success
 
 recommendations_bp = Blueprint('recommendations', __name__)
+
+@recommendations_bp.route('/test-get', methods=['GET'])
+def test_endpoint():
+    """Test endpoint"""
+    return jsonify({'message': 'Test endpoint works!'}), 200
+
+@recommendations_bp.route('/test-post', methods=['POST'])
+def generate_recommendation():
+    """Generate recommendation based on user input"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({
+                'success': False,
+                'message': 'Request data is required'
+            }), 400
+        
+        # Extract user input
+        soil_type = data.get('soil_type', '')
+        climate = data.get('climate', '')
+        region = data.get('region', '')
+        
+        # Simple response
+        return jsonify({
+            'success': True,
+            'message': 'Backend tarafından öneri gönderildi',
+            'data': {
+                'soil_type': soil_type,
+                'climate': climate,
+                'region': region
+            }
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': 'Öneri oluşturulurken hata oluştu',
+            'error': str(e)
+        }), 500
 
 @recommendations_bp.route('/', methods=['GET'])
 @jwt_required()

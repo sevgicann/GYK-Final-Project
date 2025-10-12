@@ -44,13 +44,20 @@ class ApiService {
         uri = uri.replace(queryParameters: queryParams);
       }
 
+      print('🚀 API GET Request: $uri');
+      print('🔐 Require Auth: $requireAuth');
+
       final response = await http.get(
         uri,
         headers: _getHeaders(includeAuth: requireAuth),
       ).timeout(ApiConfig.connectTimeout);
 
+      print('✅ API Response: ${response.statusCode}');
+      print('📄 Response Body: ${response.body}');
+
       return _handleResponse(response);
     } catch (e) {
+      print('❌ API Error: $e');
       throw _handleError(e);
     }
   }
@@ -62,14 +69,22 @@ class ApiService {
     bool requireAuth = false,
   }) async {
     try {
+      print('🚀 API POST Request: $endpoint');
+      print('📦 Request Body: $body');
+      print('🔐 Require Auth: $requireAuth');
+      
       final response = await http.post(
         Uri.parse(endpoint),
         headers: _getHeaders(includeAuth: requireAuth),
         body: body != null ? json.encode(body) : null,
       ).timeout(ApiConfig.connectTimeout);
 
+      print('✅ API Response: ${response.statusCode}');
+      print('📄 Response Body: ${response.body}');
+
       return _handleResponse(response);
     } catch (e) {
+      print('❌ API Error: $e');
       throw _handleError(e);
     }
   }
