@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import '../core/theme/app_theme.dart';
 import '../core/navigation/app_router.dart';
-import '../widgets/custom_button.dart';
-import '../widgets/custom_card.dart';
-import '../widgets/custom_icon_button.dart';
+import '../core/widgets/app_button.dart';
+import '../core/widgets/app_card.dart';
+import '../core/utils/app_extensions.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -72,27 +72,60 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildProgressCard() {
-    return ProgressCard(
-      title: '',
+    return AppProgressCard(
+      title: 'İlerleme Durumu',
       currentStep: _currentStep,
-      totalSteps: 2,
-      stepLabels: const ['Ürün', 'Ortam'],
+      steps: const [
+        AppProgressStep(title: 'Ürün Seçimi', number: 1),
+        AppProgressStep(title: 'Çevre Önerileri', number: 2),
+      ],
     );
   }
 
   Widget _buildWelcomeMessage() {
     return const Text(
       'Hoş geldiniz!',
-      style: AppTheme.headingStyle,
+      style: TextStyle(
+        fontSize: AppTheme.fontSizeXXLarge,
+        fontWeight: AppTheme.fontWeightBold,
+        color: AppTheme.textPrimaryColor,
+      ),
     );
   }
 
   Widget _buildLocationInfoCard() {
-    return InfoCard(
-      title: 'Konum ve İklim Bilgileri',
-      description: 'Önerileri iyileştirmek için konumunuzu ve çevre koşullarınızı belirleyin.',
-      icon: Icons.check,
-      iconColor: AppTheme.primaryLightColor,
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.info_outline,
+                color: AppTheme.primaryColor,
+                size: AppTheme.iconSize,
+              ),
+              const SizedBox(width: AppTheme.paddingSmall),
+              const Text(
+                'Konum ve İklim Bilgileri',
+                style: TextStyle(
+                  fontSize: AppTheme.fontSizeLarge,
+                  fontWeight: AppTheme.fontWeightBold,
+                  color: AppTheme.textPrimaryColor,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppTheme.paddingMedium),
+          const Text(
+            'Önerileri iyileştirmek için konumunuzu ve çevre koşullarınızı belirleyin.',
+            style: TextStyle(
+              fontSize: AppTheme.fontSizeMedium,
+              color: AppTheme.textSecondaryColor,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -100,32 +133,32 @@ class _HomePageState extends State<HomePage> {
     return Row(
       children: [
         Expanded(
-          child: CustomIconButton(
-            icon: Icons.gps_fixed,
-            tooltip: 'GPS Konumunu Kullan',
-            isSelected: _isGpsSelected,
+          child: AppButton(
+            text: 'GPS Konumu',
+            type: _isGpsSelected ? AppButtonType.primary : AppButtonType.outline,
             onPressed: () {
               setState(() {
                 _isGpsSelected = true;
                 _isManualSelected = false;
               });
-              _showLocationDialog('GPS');
+              context.showSnackBar('GPS konumu seçildi');
             },
+            icon: Icons.my_location,
           ),
         ),
         const SizedBox(width: AppTheme.paddingMedium),
         Expanded(
-          child: CustomIconButton(
-            icon: Icons.location_city,
-            tooltip: 'Şehri Manuel Seç',
-            isSelected: _isManualSelected,
+          child: AppButton(
+            text: 'Manuel Seçim',
+            type: _isManualSelected ? AppButtonType.primary : AppButtonType.outline,
             onPressed: () {
               setState(() {
-                _isGpsSelected = false;
                 _isManualSelected = true;
+                _isGpsSelected = false;
               });
-              _showLocationDialog('Manuel');
+              _showLocationDialog();
             },
+            icon: Icons.location_searching,
           ),
         ),
       ],
@@ -133,61 +166,45 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildMainActionButtons() {
-    return Row(
+    return Column(
       children: [
-        // Ürün → Ortam Önerisi Butonu (Büyük ve Varsayılan)
-        Expanded(
-          flex: 2,
-          child: CustomButton(
-            text: 'Ürün → Ortam\nÖnerisi',
-            icon: Icons.lightbulb_outline,
-            onPressed: () {
-              AppRouter.navigateTo(context, AppRouter.productSelection);
-            },
-            isFullWidth: true,
-            height: 90,
-          ),
+        AppIconCard(
+          icon: Icons.eco,
+          title: 'Ürün Seçimi',
+          subtitle: 'Hangi ürünü yetiştirmek istiyorsunuz?',
+          onTap: () => Navigator.pushNamed(context, AppRouter.productSelection),
         ),
-        
-        const SizedBox(width: AppTheme.paddingMedium),
-        
-        // Ortam → Ürün Önerisi Butonu (Ters Yön)
-        Expanded(
-          flex: 2,
-          child: CustomButton(
-            text: 'Ortam → Ürün\nÖnerisi',
-            icon: Icons.search,
-            onPressed: () {
-              AppRouter.navigateTo(context, AppRouter.environmentRecommendation);
-            },
-            isFullWidth: true,
-            height: 90,
-            type: ButtonType.outline,
-          ),
+        const SizedBox(height: AppTheme.paddingMedium),
+        AppIconCard(
+          icon: Icons.location_on,
+          title: 'Çevre Önerileri',
+          subtitle: 'Bölgenize uygun öneriler alın',
+          onTap: () => Navigator.pushNamed(context, AppRouter.environmentRecommendation),
         ),
       ],
     );
   }
 
-  void _showLocationDialog(String type) {
+  void _showLocationDialog() {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('${type == 'GPS' ? 'GPS' : 'Manuel'} Konum Seçimi'),
-          content: Text(
-            type == 'GPS' 
-                ? 'GPS konumunuz alınıyor...' 
-                : 'Şehir seçimi için lütfen bekleyiniz.',
+      builder: (context) => AlertDialog(
+        title: const Text('Konum Seçin'),
+        content: const Text('Lütfen konumunuzu seçin'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('İptal'),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Tamam'),
-            ),
-          ],
-        );
-      },
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              context.showSnackBar('Konum seçildi');
+            },
+            child: const Text('Seç'),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -1,5 +1,6 @@
 import '../models/product.dart';
 
+/// Ürün servisi - Singleton pattern ile tek sorumluluk
 class ProductService {
   static final ProductService _instance = ProductService._internal();
   factory ProductService() => _instance;
@@ -236,10 +237,32 @@ class ProductService {
     if (query.isEmpty) return getAllProducts();
     
     final lowercaseQuery = query.toLowerCase();
-    return _products.where((product) {
-      return product.name.toLowerCase().contains(lowercaseQuery) ||
-             product.category.toLowerCase().contains(lowercaseQuery) ||
-             product.description.toLowerCase().contains(lowercaseQuery);
-    }).toList();
+    return _products.where((product) => _matchesQuery(product, lowercaseQuery)).toList();
+  }
+
+  /// Ürün arama sorgusu ile eşleşip eşleşmediğini kontrol eder - tek sorumluluk
+  bool _matchesQuery(Product product, String query) {
+    return product.name.toLowerCase().contains(query) ||
+           product.category.toLowerCase().contains(query) ||
+           product.description.toLowerCase().contains(query);
+  }
+
+  /// Kategoriye göre ürün sayısını döndürür - tek sorumluluk
+  int getProductCountByCategory(String category) {
+    return _products.where((product) => product.category == category).length;
+  }
+
+  /// En popüler kategorileri döndürür - tek sorumluluk
+  List<String> getPopularCategories({int limit = 5}) {
+    final categoryCounts = <String, int>{};
+    
+    for (final product in _products) {
+      categoryCounts[product.category] = (categoryCounts[product.category] ?? 0) + 1;
+    }
+    
+    final sortedCategories = categoryCounts.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    
+    return sortedCategories.take(limit).map((e) => e.key).toList();
   }
 }

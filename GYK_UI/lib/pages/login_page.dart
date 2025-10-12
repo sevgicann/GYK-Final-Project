@@ -5,38 +5,25 @@ import '../core/navigation/app_router.dart';
 import '../core/widgets/app_button.dart';
 import '../core/utils/app_extensions.dart';
 
-class RegisterPage extends StatefulWidget {
-  const RegisterPage({super.key});
+class LoginPage extends StatefulWidget {
+  const LoginPage({super.key});
 
   @override
-  State<RegisterPage> createState() => _RegisterPageState();
+  State<LoginPage> createState() => _LoginPageState();
 }
 
-class _RegisterPageState extends State<RegisterPage> {
+class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _confirmPasswordController = TextEditingController();
   
-  String _selectedLanguage = 'Türkçe';
   bool _isLoading = false;
   bool _obscurePassword = true;
-  bool _obscureConfirmPassword = true;
-
-  final List<String> _languages = [
-    'Türkçe',
-    'English',
-    'العربية',
-    'Français',
-  ];
 
   @override
   void dispose() {
-    _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
-    _confirmPasswordController.dispose();
     super.dispose();
   }
 
@@ -44,6 +31,14 @@ class _RegisterPageState extends State<RegisterPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimaryColor),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(AppTheme.paddingLarge),
@@ -52,11 +47,6 @@ class _RegisterPageState extends State<RegisterPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const SizedBox(height: AppTheme.paddingLarge),
-                
-                // Dil Seçici
-                _buildLanguageSelector(),
-                
                 const SizedBox(height: AppTheme.paddingXLarge),
                 
                 // Logo ve Marka
@@ -69,13 +59,13 @@ class _RegisterPageState extends State<RegisterPage> {
                 
                 const SizedBox(height: AppTheme.paddingXLarge),
                 
-                // Hesap Oluştur Butonu
-                _buildCreateAccountButton(),
+                // Giriş Yap Butonu
+                _buildLoginButton(),
                 
                 const SizedBox(height: AppTheme.paddingLarge),
                 
-                // Giriş Yap Seçeneği
-                _buildLoginOption(),
+                // Kayıt Ol Seçeneği
+                _buildRegisterOption(),
                 
                 const SizedBox(height: AppTheme.paddingLarge),
               ],
@@ -83,35 +73,6 @@ class _RegisterPageState extends State<RegisterPage> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildLanguageSelector() {
-    return DropdownButtonFormField<String>(
-      initialValue: _selectedLanguage,
-      decoration: const InputDecoration(
-        labelText: 'Dil Seçin',
-        prefixIcon: Icon(
-          Icons.language,
-          color: AppTheme.primaryColor,
-        ),
-        border: OutlineInputBorder(),
-        filled: true,
-        fillColor: AppTheme.surfaceColor,
-      ),
-      items: _languages.map((String language) {
-        return DropdownMenuItem<String>(
-          value: language,
-          child: Text(language),
-        );
-      }).toList(),
-      onChanged: (String? newValue) {
-        if (newValue != null) {
-          setState(() {
-            _selectedLanguage = newValue;
-          });
-        }
-      },
     );
   }
 
@@ -137,14 +98,22 @@ class _RegisterPageState extends State<RegisterPage> {
             const SizedBox(width: AppTheme.paddingMedium),
             const Text(
               'Terramind',
-              style: AppTheme.titleStyle,
+              style: TextStyle(
+                fontSize: AppTheme.fontSizeTitle,
+                fontWeight: AppTheme.fontWeightBold,
+                color: AppTheme.textPrimaryColor,
+              ),
             ),
           ],
         ),
         const SizedBox(height: AppTheme.paddingSmall),
         const Text(
           'Akıllı Tarım Çözümleri',
-          style: AppTheme.subtitleStyle,
+          style: TextStyle(
+            fontSize: AppTheme.fontSizeXLarge,
+            fontWeight: AppTheme.fontWeightMedium,
+            color: AppTheme.textSecondaryColor,
+          ),
         ),
       ],
     );
@@ -153,21 +122,6 @@ class _RegisterPageState extends State<RegisterPage> {
   Widget _buildFormFields() {
     return Column(
       children: [
-        TextFormField(
-          controller: _nameController,
-          decoration: const InputDecoration(
-            labelText: 'Ad Soyad',
-            prefixIcon: Icon(
-              Icons.person_outline,
-              color: AppTheme.primaryColor,
-            ),
-            border: OutlineInputBorder(),
-            filled: true,
-            fillColor: AppTheme.surfaceColor,
-          ),
-          validator: Validators.name,
-        ),
-        const SizedBox(height: AppTheme.paddingLarge),
         TextFormField(
           controller: _emailController,
           keyboardType: TextInputType.emailAddress,
@@ -208,63 +162,35 @@ class _RegisterPageState extends State<RegisterPage> {
               },
             ),
           ),
-          validator: Validators.password,
-        ),
-        const SizedBox(height: AppTheme.paddingLarge),
-        TextFormField(
-          controller: _confirmPasswordController,
-          obscureText: _obscureConfirmPassword,
-          decoration: InputDecoration(
-            labelText: 'Şifre Tekrar',
-            prefixIcon: const Icon(
-              Icons.lock_outline,
-              color: AppTheme.primaryColor,
-            ),
-            border: const OutlineInputBorder(),
-            filled: true,
-            fillColor: AppTheme.surfaceColor,
-            suffixIcon: IconButton(
-              icon: Icon(
-                _obscureConfirmPassword ? Icons.visibility_off : Icons.visibility,
-                color: AppTheme.textSecondaryColor,
-              ),
-              onPressed: () {
-                setState(() {
-                  _obscureConfirmPassword = !_obscureConfirmPassword;
-                });
-              },
-            ),
-          ),
-          validator: (value) => Validators.confirmPassword(value, _passwordController.text),
         ),
       ],
     );
   }
 
-  Widget _buildCreateAccountButton() {
+  Widget _buildLoginButton() {
     return AppButton(
-      text: 'Hesap Oluştur',
-      onPressed: _handleCreateAccount,
+      text: 'Giriş Yap',
+      onPressed: _handleLogin,
       isLoading: _isLoading,
       isFullWidth: true,
     );
   }
 
-  Widget _buildLoginOption() {
+  Widget _buildRegisterOption() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         const Text(
-          'Zaten hesabınız var mı? ',
+          'Hesabınız yok mu? ',
           style: TextStyle(
             fontSize: AppTheme.fontSizeMedium,
             color: AppTheme.textSecondaryColor,
           ),
         ),
         GestureDetector(
-          onTap: () => Navigator.pushNamed(context, AppRouter.login),
+          onTap: () => Navigator.of(context).pop(),
           child: const Text(
-            'Giriş Yap',
+            'Kayıt Ol',
             style: TextStyle(
               fontSize: AppTheme.fontSizeMedium,
               color: AppTheme.primaryColor,
@@ -277,7 +203,7 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 
-  Future<void> _handleCreateAccount() async {
+  Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -287,16 +213,17 @@ class _RegisterPageState extends State<RegisterPage> {
     });
 
     try {
-      // Simüle edilmiş API çağrısı
+      // Simüle edilmiş giriş işlemi
       await Future.delayed(const Duration(seconds: 1));
       
-      // Başarılı kayıt sonrası direkt ürün seçimi sayfasına yönlendir
+      // Başarılı giriş sonrası ürün seçimi sayfasına yönlendir
       if (mounted) {
+        context.showSnackBar('Giriş başarılı!');
         AppRouter.navigateAndReplace(context, AppRouter.productSelection);
       }
     } catch (e) {
       if (mounted) {
-        context.showSnackBar('Hesap oluşturulurken hata oluştu: $e');
+        context.showSnackBar('Giriş yapılırken hata oluştu: $e');
       }
     } finally {
       if (mounted) {
@@ -306,5 +233,4 @@ class _RegisterPageState extends State<RegisterPage> {
       }
     }
   }
-
 }

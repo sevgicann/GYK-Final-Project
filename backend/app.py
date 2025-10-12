@@ -1,0 +1,152 @@
+from flask import Flask, request, jsonify
+from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
+from flask_jwt_extended import JWTManager
+from flask_cors import CORS
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from datetime import timedelta
+import os
+from dotenv import load_dotenv
+from utils.logger import get_logger, log_info, log_error, log_success
+
+# Load environment variables
+load_dotenv()
+
+# Initialize Flask app
+app = Flask(__name__)
+
+# Initialize logger
+logger = get_logger('app')
+log_info("Initializing Terramind Flask application")
+
+# Configuration
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-secret-key-here')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///terramind.db')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'jwt-secret-string')
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=7)
+app.config['JWT_REFRESH_TOKEN_EXPIRES'] = timedelta(days=30)
+
+# Initialize extensions
+log_info("Initializing database connection")
+db = SQLAlchemy(app)
+
+log_info("Initializing database migrations")
+migrate = Migrate(app, db)
+
+log_info("Initializing JWT authentication")
+jwt = JWTManager(app)
+
+log_info("Initializing CORS")
+CORS(app, origins=[os.getenv('CORS_ORIGIN', 'http://localhost:8080')])
+
+# Rate limiting
+log_info("Initializing rate limiting")
+limiter = Limiter(
+    app=app,
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"]
+)
+
+# Import models
+log_info("Importing database models")
+from models.user import User
+from models.product import Product, ProductRequirements
+from models.environment import Environment, EnvironmentData
+from models.recommendation import Recommendation
+
+# Import routes
+log_info("Importing API routes")
+from routes.auth import auth_bp
+from routes.users import users_bp
+from routes.products import products_bp
+from routes.environments import environments_bp
+from routes.recommendations import recommendations_bp
+
+# Register blueprints
+log_info("Registering API blueprints")
+app.register_blueprint(auth_bp, url_prefix='/api/auth')
+app.register_blueprint(users_bp, url_prefix='/api/users')
+app.register_blueprint(products_bp, url_prefix='/api/products')
+app.register_blueprint(environments_bp, url_prefix='/api/environments')
+app.register_blueprint(recommendations_bp, url_prefix='/api/recommendations')
+
+# Health check endpoint
+@app.route('/health', methods=['GET'])
+def health_check():
+    """Health check endpoint"""
+    log_info("Health check requested")
+    return jsonify({
+        'status': 'OK',
+        'message': 'Terramind API is running',
+        'version': '1.0.0',
+        'environment': os.getenv('FLASK_ENV', 'development')
+    }), 200
+
+# Root endpoint
+@app.route('/', methods=['GET'])
+def root():
+    """Root endpoint with API information"""
+    return jsonify({
+        'message': 'Welcome to Terramind API',
+        'version': '1.0.0',
+        'endpoints': {
+            'health': '/health',
+            'auth': '/api/auth',
+            'users': '/api/users',
+            'products': '/api/products',
+            'environments': '/api/environments',
+            'recommendations': '/api/recommendations'
+        }
+    }), 200
+
+# Error handlers
+@app.errorhandler(404)
+def not_found(error):
+    return jsonify({
+        'success': False,
+        'message': 'API endpoint not found'
+    }), 404
+
+@app.errorhandler(500)
+def internal_error(error):
+    db.session.rollback()
+    return jsonify({
+        'success': False,
+        'message': 'Internal server error'
+    }), 500
+
+@app.errorhandler(429)
+def ratelimit_handler(e):
+    return jsonify({
+        'success': False,
+        'message': 'Rate limit exceeded. Please try again later.'
+    }), 429
+
+# JWT error handlers
+@jwt.expired_token_loader
+def expired_token_callback(jwt_header, jwt_payload):
+    return jsonify({
+        'success': False,
+        'message': 'Token has expired'
+    }), 401
+
+@jwt.invalid_token_loader
+def invalid_token_callback(error):
+    return jsonify({
+        'success': False,
+        'message': 'Invalid token'
+    }), 401
+
+@jwt.unauthorized_loader
+def missing_token_callback(error):
+    return jsonify({
+        'success': False,
+        'message': 'Authorization token is required'
+    }), 401
+
+if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()
+    app.run(debug=os.getenv('FLASK_ENV') == 'development', host='0.0.0.0', port=5000)

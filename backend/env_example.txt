@@ -1,0 +1,27 @@
+# Terramind Backend API Configuration
+FLASK_ENV=development
+SECRET_KEY=your-secret-key-here-change-in-production
+JWT_SECRET_KEY=jwt-secret-string-change-in-production
+DATABASE_URL=sqlite:///terramind.db
+CORS_ORIGIN=http://localhost:8080
+
+# Server Configuration
+HOST=0.0.0.0
+PORT=5000
+
+# Database Configuration (for production)
+# DATABASE_URL=postgresql://username:password@localhost:5432/terramind
+
+# Redis Configuration (for rate limiting and caching)
+# REDIS_URL=redis://localhost:6379/0
+
+# Email Configuration (for future use)
+# MAIL_SERVER=smtp.gmail.com
+# MAIL_PORT=587
+# MAIL_USE_TLS=true
+# MAIL_USERNAME=your-email@gmail.com
+# MAIL_PASSWORD=your-app-password
+
+# File Upload Configuration
+UPLOAD_FOLDER=uploads
+MAX_CONTENT_LENGTH=16777216
