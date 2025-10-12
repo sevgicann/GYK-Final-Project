@@ -17,7 +17,7 @@ GYK-Final-Project/
 │   ├── models/                # Veritabanı modelleri
 │   ├── routes/                # API endpoint'leri
 │   └── venv/                  # Virtual environment
-├── GYK_UI/                    # Frontend (Flutter)
+├── frontend/                    # Frontend (Flutter)
 │   ├── lib/
 │   │   ├── core/config/       # API konfigürasyonu
 │   │   ├── services/          # API servisleri
@@ -54,7 +54,7 @@ docker-compose up -d
 ### Frontend (Flutter)
 
 ```bash
-cd GYK_UI
+cd frontend
 flutter pub get
 flutter run
 ```
