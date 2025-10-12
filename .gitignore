@@ -1,6 +1,5 @@
-venv
-GYK_UI/.metadata
-GYK_UI/pubspec.lock
+frontend/.metadata
+frontend/pubspec.lock
 backend/venv
 backend/.env
 backend/.dockerignore
