@@ -4,6 +4,7 @@ import '../core/navigation/app_router.dart';
 import '../models/product.dart';
 import '../services/product_service.dart';
 import '../services/image_service.dart';
+import '../services/product_selection_service.dart';
 import '../data/turkish_cities.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/custom_card.dart';
@@ -19,6 +20,7 @@ class ProductSelectionPage extends StatefulWidget {
 class _ProductSelectionPageState extends State<ProductSelectionPage> {
   final ProductService _productService = ProductService();
   final ImageService _imageService = ImageService();
+  final ProductSelectionService _productSelectionService = ProductSelectionService();
 
   Product? _selectedProduct;
   String? _selectedCity;
@@ -122,11 +124,24 @@ class _ProductSelectionPageState extends State<ProductSelectionPage> {
           value: _selectedProduct?.name,
           items: _productService.getAllProductNames(),
           hint: 'Ürün seçiniz',
-          onChanged: (value) {
+          onChanged: (value) async {
             if (value != null) {
               setState(() {
                 _selectedProduct = _productService.getProductByName(value);
               });
+              
+              // Send product selection to backend
+              try {
+                await _productSelectionService.selectProduct(
+                  productName: _selectedProduct!.name,
+                  productId: _selectedProduct!.id,
+                  productCategory: _selectedProduct!.category,
+                  productDescription: _selectedProduct!.description,
+                );
+              } catch (e) {
+                print('❌ Error sending product selection to backend: $e');
+                // Don't show error to user, just log it
+              }
             }
           },
         ),
@@ -369,21 +384,48 @@ class _ProductSelectionPageState extends State<ProductSelectionPage> {
     );
   }
 
-  void _handleGpsLocation() {
+  void _handleGpsLocation() async {
     // GPS konumu simülasyonu
     setState(() {
       _isLoading = true;
     });
 
-    Future.delayed(const Duration(seconds: 2), () {
+    try {
+      // Simulate GPS location detection
+      await Future.delayed(const Duration(seconds: 2));
+      
       if (mounted) {
         setState(() {
           _selectedCity = 'İstanbul'; // Simüle edilmiş GPS konumu
           _selectedRegion = TurkishCities.getRegionByCity(_selectedCity!);
+          _isGpsSelected = true;
+          _isManualSelected = false;
           _isLoading = false;
         });
+        
+        // Send GPS location selection to backend
+        try {
+          await _productSelectionService.selectLocation(
+            locationType: 'gps',
+            city: _selectedCity!,
+            region: _selectedRegion!,
+            latitude: 41.0082, // İstanbul coordinates
+            longitude: 28.9784,
+            climateZone: _selectedRegion!,
+          );
+        } catch (e) {
+          print('❌ Error sending GPS location to backend: $e');
+          // Don't show error to user, just log it
+        }
       }
-    });
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        print('❌ Error in GPS location: $e');
+      }
+    }
   }
 
   void _showCitySelectionDialog() {
@@ -402,12 +444,27 @@ class _ProductSelectionPageState extends State<ProductSelectionPage> {
                 return ListTile(
                   title: Text(city),
                   subtitle: Text(TurkishCities.getRegionByCity(city)),
-                  onTap: () {
+                  onTap: () async {
                     setState(() {
                       _selectedCity = city;
                       _selectedRegion = TurkishCities.getRegionByCity(city);
+                      _isManualSelected = true;
+                      _isGpsSelected = false;
                     });
                     Navigator.of(context).pop();
+                    
+                    // Send manual location selection to backend
+                    try {
+                      await _productSelectionService.selectLocation(
+                        locationType: 'manual',
+                        city: city,
+                        region: TurkishCities.getRegionByCity(city),
+                        climateZone: TurkishCities.getRegionByCity(city),
+                      );
+                    } catch (e) {
+                      print('❌ Error sending manual location to backend: $e');
+                      // Don't show error to user, just log it
+                    }
                   },
                 );
               },
@@ -440,12 +497,25 @@ class _ProductSelectionPageState extends State<ProductSelectionPage> {
     });
 
     try {
-      // Simüle edilmiş API çağrısı
-      await Future.delayed(const Duration(seconds: 1));
+      // Get environment recommendations from backend
+      final response = await _productSelectionService.getEnvironmentRecommendations(
+        productName: _selectedProduct!.name,
+        city: _selectedCity!,
+        region: _selectedRegion!,
+        locationType: _isGpsSelected ? 'gps' : 'manual',
+      );
       
-      // Direkt çevre önerilerini göster
       if (mounted) {
-        _showEnvironmentRecommendations();
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Öneriler başarıyla alındı: ${_selectedProduct!.name} için ${_selectedCity!}'),
+            backgroundColor: AppTheme.successColor,
+          ),
+        );
+        
+        // Show environment recommendations
+        _showEnvironmentRecommendations(response);
       }
     } catch (e) {
       if (mounted) {
@@ -465,16 +535,16 @@ class _ProductSelectionPageState extends State<ProductSelectionPage> {
     }
   }
 
-  void _showEnvironmentRecommendations() {
+  void _showEnvironmentRecommendations([Map<String, dynamic>? responseData]) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => _buildRecommendationsBottomSheet(),
+      builder: (context) => _buildRecommendationsBottomSheet(responseData),
     );
   }
 
-  Widget _buildRecommendationsBottomSheet() {
+  Widget _buildRecommendationsBottomSheet([Map<String, dynamic>? responseData]) {
     return Container(
       height: MediaQuery.of(context).size.height * 0.8,
       decoration: const BoxDecoration(

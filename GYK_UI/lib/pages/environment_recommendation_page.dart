@@ -111,27 +111,51 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
       });
 
       try {
-        await Future.delayed(const Duration(seconds: 1)); // Simulate API call
+        // Backend'e temel bilgi gönder
+        final response = await _recommendationService.generateRecommendation(
+          soilType: _selectedSoilType ?? 'Tınlı Toprak',
+          climate: _selectedRegion ?? 'İç Anadolu',
+          region: _selectedRegion ?? 'İç Anadolu',
+          preferences: {
+            'ph': _phController.text.isNotEmpty ? _phController.text : '6.5',
+            'nitrogen': _nitrogenController.text.isNotEmpty ? _nitrogenController.text : '120',
+            'phosphorus': _phosphorusController.text.isNotEmpty ? _phosphorusController.text : '60',
+            'potassium': _potassiumController.text.isNotEmpty ? _potassiumController.text : '225',
+            'humidity': _humidityController.text.isNotEmpty ? _humidityController.text : '26',
+            'temperature': _temperatureController.text.isNotEmpty ? _temperatureController.text : '23',
+            'rainfall': _rainfallController.text.isNotEmpty ? _rainfallController.text : '850',
+            'selectedRegion': _selectedRegion,
+            'selectedSoilType': _selectedSoilType,
+            'selectedFertilizer': _selectedFertilizer,
+            'selectedIrrigation': _selectedIrrigation,
+            'selectedSunlight': _selectedSunlight,
+            'selectedCity': _selectedCity,
+          },
+        );
 
-        // Eğer değerler boşsa ortalama değerleri kullan
-        final ph = _phController.text.isEmpty ? 6.5 : double.parse(_phController.text);
-        final nitrogen = _nitrogenController.text.isEmpty ? 120.0 : double.parse(_nitrogenController.text);
-        final phosphorus = _phosphorusController.text.isEmpty ? 60.0 : double.parse(_phosphorusController.text);
-        final potassium = _potassiumController.text.isEmpty ? 225.0 : double.parse(_potassiumController.text);
-        final humidity = _humidityController.text.isEmpty ? 26.0 : double.parse(_humidityController.text);
-        final temperature = _temperatureController.text.isEmpty ? 23.0 : double.parse(_temperatureController.text);
-        final rainfall = _rainfallController.text.isEmpty ? 850.0 : double.parse(_rainfallController.text);
+        // Backend'den gelen öneri verilerini işle
+        if (response['success'] == true) {
+          // Sabit ürünler: Domates, Mısır, Pirinç (backend'den gelen veri ile değiştirilebilir)
+          final fixedProducts = _productService.getAllProducts()
+              .where((product) => ['Domates', 'Mısır', 'Pirinç'].contains(product.name))
+              .toList();
 
-        // Sabit ürünler: Domates, Mısır, Pirinç
-        final fixedProducts = _productService.getAllProducts()
-            .where((product) => ['Domates', 'Mısır', 'Pirinç'].contains(product.name))
-            .toList();
-
-        if (mounted) {
-          setState(() {
-            _recommendedProducts = fixedProducts;
-          });
-          _showProductRecommendationsBottomSheet();
+          if (mounted) {
+            setState(() {
+              _recommendedProducts = fixedProducts;
+            });
+            _showProductRecommendationsBottomSheet();
+            
+            // Başarı mesajını göster
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(response['message'] ?? 'Öneri başarıyla oluşturuldu'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        } else {
+          throw Exception(response['message'] ?? 'Öneri oluşturulamadı');
         }
       } catch (e) {
         if (mounted) {

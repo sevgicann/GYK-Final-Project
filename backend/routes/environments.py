@@ -59,7 +59,7 @@ def create_environment():
             }), 400
         
         # Validate required fields
-        name = data.get('name', '').strip()
+        name = (data.get('name') or '').strip()
         if not name:
             return jsonify({
                 'success': False,
@@ -71,8 +71,8 @@ def create_environment():
             user_id=user_id,
             name=name,
             location_type=data.get('location_type', 'manual'),
-            city=data.get('city', '').strip(),
-            district=data.get('district', '').strip(),
+            city=(data.get('city') or '').strip(),
+            district=(data.get('district') or '').strip(),
             latitude=data.get('latitude'),
             longitude=data.get('longitude')
         )
@@ -155,16 +155,16 @@ def update_environment(environment_id):
         
         # Update fields
         if 'name' in data:
-            environment.name = data['name'].strip()
+            environment.name = (data['name'] or '').strip()
         
         if 'location_type' in data:
             environment.location_type = data['location_type']
         
         if 'city' in data:
-            environment.city = data['city'].strip()
+            environment.city = (data['city'] or '').strip()
         
         if 'district' in data:
-            environment.district = data['district'].strip()
+            environment.district = (data['district'] or '').strip()
         
         if 'latitude' in data:
             environment.latitude = data['latitude']

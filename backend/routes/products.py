@@ -109,7 +109,7 @@ def get_categories():
 def search_products():
     """Search products by name or description"""
     try:
-        query = request.args.get('q', '').strip()
+        query = (request.args.get('q') or '').strip()
         
         if not query:
             return jsonify({
@@ -247,9 +247,9 @@ def create_product():
             }), 400
         
         # Validate required fields
-        name = data.get('name', '').strip()
-        category = data.get('category', '').strip()
-        description = data.get('description', '').strip()
+        name = (data.get('name') or '').strip()
+        category = (data.get('category') or '').strip()
+        description = (data.get('description') or '').strip()
         
         if not name:
             return jsonify({

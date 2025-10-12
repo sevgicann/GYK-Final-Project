@@ -58,16 +58,16 @@ def update_profile():
         
         # Update allowed fields
         if 'name' in data:
-            user.name = data['name'].strip()
+            user.name = (data['name'] or '').strip()
         
         if 'language' in data:
             user.language = data['language']
         
         if 'city' in data:
-            user.city = data['city'].strip()
+            user.city = (data['city'] or '').strip()
         
         if 'district' in data:
-            user.district = data['district'].strip()
+            user.district = (data['district'] or '').strip()
         
         if 'latitude' in data:
             user.latitude = data['latitude']
@@ -232,9 +232,9 @@ def update_settings():
         if 'location' in data:
             location = data['location']
             if 'city' in location:
-                user.city = location['city'].strip()
+                user.city = (location['city'] or '').strip()
             if 'district' in location:
-                user.district = location['district'].strip()
+                user.district = (location['district'] or '').strip()
             if 'latitude' in location:
                 user.latitude = location['latitude']
             if 'longitude' in location:
