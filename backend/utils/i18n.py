@@ -8,8 +8,9 @@ Following canonical contract approach - model always sees English
 # CANONICAL MAPPINGS (TR ↔ EN)
 # ============================================================================
 
-# Field names mapping (TR → EN)
+# Field names mapping (TR → EN and Frontend → Canonical)
 FIELD_NAMES_TR_TO_EN = {
+    # Turkish field names
     'toprak_ph': 'soil_ph',
     'azot': 'nitrogen',
     'fosfor': 'phosphorus',
@@ -23,34 +24,114 @@ FIELD_NAMES_TR_TO_EN = {
     'sulama_yontemi': 'irrigation_method',
     'hava_durumu': 'weather_condition',
     'urun': 'crop',
+    # Frontend field names → Canonical names
+    'fertilizer': 'fertilizer_type',
+    'irrigation': 'irrigation_method',
+    'sunlight': 'weather_condition',
+    # Allow both forms
+    'ph': 'soil_ph',
+    'nitrogen': 'nitrogen',
+    'phosphorus': 'phosphorus',
+    'potassium': 'potassium',
+    'humidity': 'moisture',
+    'temperature': 'temperature_celsius',
+    'rainfall': 'rainfall_mm',
+    'region': 'region',
+    'soil_type': 'soil_type',
+    'fertilizer_type': 'fertilizer_type',
+    'irrigation_method': 'irrigation_method',
+    'weather_condition': 'weather_condition',
+    'crop': 'crop',
 }
 
 # Categorical values mapping (TR → EN)
+# Based on: frontend/lib/pages/environment_recommendation_page.dart (lines 365, 384, 403, 429, 448)
+#           res/csv_files/crop_dataset_v_100bin.csv (column values)
 CATEGORIES = {
     'crop': {
-        'bugday': 'wheat', 'arpa': 'barley', 'misir': 'maize', 'pirinc': 'rice',
-        'patates': 'potato', 'domates': 'tomato', 'biber': 'pepper',
-        'patlican': 'eggplant', 'salatalik': 'cucumber', 'kabak': 'pumpkin',
-        'kavun': 'melon', 'karpuz': 'watermelon', 'uzum': 'grapes',
-        'elma': 'apple', 'armut': 'pear', 'kiraz': 'cherry',
+        # Tahıllar
+        'bugday': 'wheat', 'arpa': 'barley', 'misir': 'corn', 'pirinc': 'rice', 'yulaf': 'oat',
+        # Endüstriyel
+        'pamuk': 'cotton', 'ayçiçeği': 'sunflower', 'aycicegi': 'sunflower',
+        # Diğer
+        'patates': 'potato', 'domates': 'tomato',
     },
     'region': {
-        'marmara': 'Marmara', 'ege': 'Aegean', 'akdeniz': 'Mediterranean',
-        'karadeniz': 'Black Sea', 'ic anadolu': 'Central Anatolia',
-        'dogu anadolu': 'Eastern Anatolia', 'guneydogu anadolu': 'Southeastern Anatolia',
+        # Exact matches from frontend (lines 365)
+        'iç anadolu': 'Central Anatolia',
+        'ic anadolu': 'Central Anatolia',
+        'marmara': 'Marmara',
+        'ege': 'Aegean',
+        'akdeniz': 'Mediterranean',
+        'karadeniz': 'Black Sea',
+        'doğu anadolu': 'Eastern Anatolia',
+        'dogu anadolu': 'Eastern Anatolia',
+        'güneydoğu anadolu': 'Southeastern Anatolia',
+        'guneydogu anadolu': 'Southeastern Anatolia',
     },
     'soil_type': {
-        'kumlu': 'sandy', 'killi': 'clayey', 'tinli': 'loamy', 'siltli': 'silty',
+        # Exact matches from frontend (lines 384) and dataset
+        'killi toprak': 'Clay',
+        'kumlu toprak': 'Sandy',
+        'tınlı toprak': 'Loamy',
+        'tinli toprak': 'Loamy',
+        'siltli toprak': 'Silty',
+        # Fallbacks for unsupported types in dataset
+        'kireçli toprak': 'Loamy',
+        'kirecli toprak': 'Loamy',
+        'asitli toprak': 'Sandy',
+        # Short versions
+        'killi': 'Clay',
+        'kumlu': 'Sandy',
+        'tınlı': 'Loamy',
+        'tinli': 'Loamy',
+        'siltli': 'Silty',
     },
     'fertilizer_type': {
-        'azotlu': 'nitrogenous', 'fosforlu': 'phosphatic', 'potasyumlu': 'potassic',
-        'organik': 'organic', 'kimyasal': 'chemical', 'yok': 'none',
+        # Exact matches from frontend (lines 403) and dataset
+        'potasyum nitrat': 'Potassium Nitrate',
+        'amonyum sülfat': 'Ammonium Sulphate',
+        'amonyum sulfat': 'Ammonium Sulphate',
+        'üre': 'Urea',
+        'ure': 'Urea',
+        # Fallbacks for unsupported types in dataset
+        'kompost': 'Urea',
+        'organik gübre': 'Urea',
+        'organik gubre': 'Urea',
     },
     'irrigation_method': {
-        'damla': 'drip', 'yagmurlama': 'sprinkler', 'salma': 'flood', 'yok': 'none',
+        # Exact matches from frontend (lines 429) and dataset
+        'salma sulama': 'Flood Irrigation',
+        'damla sulama': 'Drip Irrigation',
+        'yağmurlama': 'Sprinkler Irrigation',
+        'yagmurlama': 'Sprinkler Irrigation',
+        'sprinkler': 'Sprinkler Irrigation',
+        'mikro sulama': 'Drip Irrigation',
+        # Short versions
+        'salma': 'Flood Irrigation',
+        'damla': 'Drip Irrigation',
+        # Rain-fed
+        'yağışa bağımlı': 'Rain-fed',
+        'yagisa bagimli': 'Rain-fed',
+        'yağmura bağımlı': 'Rain-fed',
+        'yagmura bagimli': 'Rain-fed',
     },
     'weather_condition': {
-        'gunesli': 'sunny', 'bulutlu': 'cloudy', 'yagmurlu': 'rainy',
+        # Frontend sunlight values (lines 448) mapped to weather conditions
+        'güneşli': 'sunny',
+        'gunesli': 'sunny',
+        'kısmi gölge': 'cloudy',
+        'kismi golge': 'cloudy',
+        'gölgeli': 'cloudy',
+        'golgeli': 'cloudy',
+        'tam gölge': 'cloudy',
+        'tam golge': 'cloudy',
+        # Weather conditions
+        'yağmurlu': 'rainy',
+        'yagmurlu': 'rainy',
+        'bulutlu': 'cloudy',
+        'rüzgarlı': 'windy',
+        'ruzgarli': 'windy',
     },
 }
 
