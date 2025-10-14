@@ -7,8 +7,35 @@ from models.environment import Environment
 from app import db
 from datetime import datetime
 from utils.logger import log_api_call, get_logger, log_info, log_success
+from utils.i18n import adapt_request, adapt_response, get_field_options, detect_language
 
 recommendations_bp = Blueprint('recommendations', __name__)
+
+@recommendations_bp.route('/field-options', methods=['GET'])
+def get_field_options_endpoint():
+    """
+    Get available options for categorical fields
+    Query params: field (crop, region, soil_type, etc.), language (tr/en, default: tr)
+    """
+    try:
+        field_name = request.args.get('field', 'crop')
+        language = request.args.get('language', 'tr')
+        
+        options = get_field_options(field_name, language)
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'field': field_name,
+                'options': options,
+                'language': language
+            }
+        }), 200
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Error getting field options: {str(e)}'
+        }), 500
 
 @recommendations_bp.route('/test-get', methods=['GET'])
 def test_endpoint():
@@ -94,7 +121,7 @@ def save_location_data():
 
 @recommendations_bp.route('/environment-data', methods=['POST'])
 def save_environment_data():
-    """Save environment data from user selection"""
+    """Save environment data from user selection with i18n support"""
     logger = get_logger('routes.recommendations')
     
     try:
@@ -107,40 +134,42 @@ def save_environment_data():
                 'message': 'Request data is required'
             }), 400
         
-        # Detailed logging of environment data
+        # Get target language for response
+        target_lang = data.pop('language', 'tr')
+        
+        # Detect source language and adapt to canonical English
+        source_lang = detect_language(data)
+        canonical_data = adapt_request(data, source_lang)
+        
         logger.info("=" * 80)
         logger.info("🌍 ENVIRONMENT DATA RECEIVED:")
+        logger.info(f"  Source Language: {source_lang}")
+        logger.info(f"  Target Language: {target_lang}")
         logger.info(f"  Timestamp: {datetime.now().isoformat()}")
         logger.info("=" * 80)
         
-        # Extract and log environment information
-        region = (data.get('region') or '').strip()
-        soil_type = (data.get('soil_type') or '').strip()
-        fertilizer = (data.get('fertilizer') or '').strip()
-        irrigation = (data.get('irrigation') or '').strip()
-        sunlight = (data.get('sunlight') or '').strip()
-        
-        logger.info("🌱 ENVIRONMENT INFORMATION:")
-        logger.info(f"  Region: {region}")
-        logger.info(f"  Soil Type: {soil_type}")
-        logger.info(f"  Fertilizer: {fertilizer}")
-        logger.info(f"  Irrigation Method: {irrigation}")
-        logger.info(f"  Sunlight: {sunlight}")
+        # Log canonical (English) data
+        logger.info("🌱 CANONICAL ENVIRONMENT DATA (EN):")
+        logger.info(f"  Region: {canonical_data.get('region')}")
+        logger.info(f"  Soil Type: {canonical_data.get('soil_type')}")
+        logger.info(f"  Fertilizer: {canonical_data.get('fertilizer_type')}")
+        logger.info(f"  Irrigation: {canonical_data.get('irrigation_method')}")
+        logger.info(f"  Weather: {canonical_data.get('weather_condition')}")
         
         logger.info("=" * 80)
-        logger.info("✅ ENVIRONMENT DATA SAVED SUCCESSFULLY")
+        logger.info("✅ ENVIRONMENT DATA PROCESSED")
         logger.info("=" * 80)
+        
+        # Adapt response back to target language
+        response_data = adapt_response(canonical_data, target_lang)
         
         return jsonify({
             'success': True,
-            'message': 'Çevre bilgileri başarıyla kaydedildi',
+            'message': 'Çevre bilgileri başarıyla kaydedildi' if target_lang == 'tr' else 'Environment data saved successfully',
             'data': {
-                'region': region,
-                'soil_type': soil_type,
-                'fertilizer': fertilizer,
-                'irrigation': irrigation,
-                'sunlight': sunlight,
-                'saved_at': datetime.now().isoformat()
+                **response_data,
+                'saved_at': datetime.now().isoformat(),
+                'canonical_format': canonical_data  # For debugging
             }
         }), 200
         
@@ -148,7 +177,7 @@ def save_environment_data():
         logger.error(f"Error saving environment data: {str(e)}")
         return jsonify({
             'success': False,
-            'message': 'Çevre bilgileri kaydedilirken hata oluştu',
+            'message': 'Çevre bilgileri kaydedilirken hata oluştu' if target_lang == 'tr' else 'Error saving environment data',
             'error': str(e)
         }), 500
 
