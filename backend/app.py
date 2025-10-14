@@ -20,6 +20,9 @@ app = Flask(__name__)
 logger = get_logger('app')
 log_info("Initializing Terramind Flask application")
 
+# ML Service (will be initialized after app setup)
+ml_service = None
+
 # Configuration
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-secret-key-here')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///terramind.db')
@@ -126,17 +129,49 @@ app.register_blueprint(recommendations_bp, url_prefix='/api/recommendations')
 from routes.product_selection import product_selection_bp
 app.register_blueprint(product_selection_bp, url_prefix='/api/product-selection')
 
+# Import and register ML endpoints blueprint
+from routes.ml_endpoints import ml_bp
+app.register_blueprint(ml_bp, url_prefix='/api/ml')
+
+# Initialize ML Service
+def init_ml_service():
+    """Initialize ML service with models"""
+    global ml_service
+    try:
+        from services.ml_service import get_ml_service
+        log_info("Initializing ML Service...")
+        ml_service = get_ml_service()
+        ml_service.initialize_models()
+        log_success("ML Service initialized successfully")
+    except Exception as e:
+        log_error(f"ML Service initialization failed: {str(e)}")
+        log_error("Application will continue without ML capabilities")
+
 # Health check endpoint
 @app.route('/health', methods=['GET'])
 def health_check():
     """Health check endpoint"""
     log_info("Health check requested")
-    return jsonify({
+    
+    health_data = {
         'status': 'OK',
         'message': 'Terramind API is running',
         'version': '1.0.0',
         'environment': os.getenv('FLASK_ENV', 'development')
-    }), 200
+    }
+    
+    # Add ML service status if available
+    if ml_service:
+        try:
+            ml_health = ml_service.health_check()
+            health_data['ml_service'] = ml_health
+        except Exception as e:
+            health_data['ml_service'] = {
+                'status': 'error',
+                'error': str(e)
+            }
+    
+    return jsonify(health_data), 200
 
 # Test endpoint
 @app.route('/test-recommendation', methods=['POST'])
@@ -399,4 +434,6 @@ def missing_token_callback(error):
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
+        # Initialize ML service
+        init_ml_service()
     app.run(debug=os.getenv('FLASK_ENV') == 'development', host='0.0.0.0', port=5000)

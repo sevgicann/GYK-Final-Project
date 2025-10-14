@@ -32,8 +32,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
-# Create uploads directory
+# Create necessary directories
 RUN mkdir -p uploads
+
+# Note: ML model files should already be in backend/models/ directory
 
 # Create non-root user
 RUN adduser --disabled-password --gecos '' appuser \

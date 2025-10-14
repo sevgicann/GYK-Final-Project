@@ -11,6 +11,7 @@ import '../services/recommendation_service.dart';
 import '../services/product_service.dart';
 import '../services/region_service.dart';
 import '../services/image_service.dart';
+import '../services/location_service.dart';
 import '../models/product.dart';
 import '../data/turkish_cities.dart';
 
@@ -48,6 +49,7 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
   final RegionService _regionService = RegionService();
   final ImageService _imageService = ImageService();
   final ProductService _productService = ProductService();
+  final LocationService _locationService = LocationService();
   
   // ScaffoldMessenger referansını kaydet
   ScaffoldMessengerState? _scaffoldMessenger;
@@ -823,55 +825,102 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
   }
 
   void _handleGpsLocation() async {
-    // GPS konumu alma simülasyonu
+    // Get REAL GPS location
     if (_scaffoldMessenger != null) {
       _scaffoldMessenger!.showSnackBar(
         const SnackBar(
-          content: Text('GPS konumunuz alınıyor...'),
+          content: Text('📍 GPS konumunuz alınıyor...'),
           backgroundColor: AppTheme.primaryColor,
         ),
       );
     }
     
-    // Simüle edilmiş GPS konumu
-    Future.delayed(const Duration(seconds: 2), () async {
+    // Get real GPS location
+    try {
+      final locationData = await _locationService.getCurrentLocation();
+      
       if (mounted) {
-        setState(() {
-          _selectedCity = 'İstanbul'; // Product selection page ile aynı
-          _selectedRegion = TurkishCities.getRegionByCity(_selectedCity!); // Doğru bölge eşleştirmesi
-        });
-        
-        // Backend'e konum bilgilerini gönder
-        try {
-          await _recommendationService.saveLocationData(
-            locationType: 'gps',
-            city: _selectedCity!,
-            region: _selectedRegion!,
-            latitude: 41.0082, // İstanbul koordinatları
-            longitude: 28.9784,
-          );
+        if (locationData['success'] == true) {
+          setState(() {
+            _selectedCity = locationData['city'];
+            _selectedRegion = locationData['region'];
+            _isGpsSelected = true;
+            _isManualSelected = false;
+          });
           
-          if (mounted && _scaffoldMessenger != null) {
-            _scaffoldMessenger!.showSnackBar(
-              SnackBar(
-                content: Text('GPS konumu başarıyla alındı ve kaydedildi: $_selectedCity'),
-                backgroundColor: AppTheme.primaryColor,
-              ),
+          // Backend'e konum bilgilerini gönder
+          try {
+            await _recommendationService.saveLocationData(
+              locationType: 'gps',
+              city: _selectedCity!,
+              region: _selectedRegion!,
+              latitude: locationData['latitude'],
+              longitude: locationData['longitude'],
             );
+            
+            if (mounted && _scaffoldMessenger != null) {
+              _scaffoldMessenger!.showSnackBar(
+                SnackBar(
+                  content: Text(
+                    '✅ GPS konumu alındı: $_selectedCity ($_selectedRegion)',
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                  backgroundColor: AppTheme.primaryColor,
+                  duration: const Duration(seconds: 3),
+                ),
+              );
+            }
+          } catch (e) {
+            print('❌ Error saving GPS location: $e');
+            if (mounted && _scaffoldMessenger != null) {
+              _scaffoldMessenger!.showSnackBar(
+                SnackBar(
+                  content: Text('⚠️ GPS konumu alındı ancak kaydedilemedi: $e'),
+                  backgroundColor: AppTheme.errorColor,
+                ),
+              );
+            }
           }
-        } catch (e) {
-          print('❌ Error saving GPS location: $e');
+        } else {
+          // GPS failed
           if (mounted && _scaffoldMessenger != null) {
             _scaffoldMessenger!.showSnackBar(
               SnackBar(
-                content: Text('GPS konumu alındı ancak kaydedilemedi: $e'),
+                content: Text(
+                  locationData['message'] ?? 'GPS konumu alınamadı',
+                  style: const TextStyle(color: Colors.white),
+                ),
                 backgroundColor: AppTheme.errorColor,
+                duration: const Duration(seconds: 4),
+                action: SnackBarAction(
+                  label: 'Manuel Seç',
+                  textColor: Colors.white,
+                  onPressed: () {
+                    setState(() {
+                      _isManualSelected = true;
+                      _isGpsSelected = false;
+                    });
+                  },
+                ),
               ),
             );
           }
         }
       }
-    });
+    } catch (e) {
+      print('❌ Error getting GPS location: $e');
+      if (mounted && _scaffoldMessenger != null) {
+        _scaffoldMessenger!.showSnackBar(
+          SnackBar(
+            content: Text(
+              'GPS hatası: $e',
+              style: const TextStyle(color: Colors.white),
+            ),
+            backgroundColor: AppTheme.errorColor,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _saveEnvironmentData() async {
