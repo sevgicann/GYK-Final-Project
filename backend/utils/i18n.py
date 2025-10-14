@@ -60,14 +60,22 @@ CATEGORIES = {
         # Exact matches from frontend (lines 365)
         'iç anadolu': 'Central Anatolia',
         'ic anadolu': 'Central Anatolia',
+        'İç anadolu': 'Central Anatolia',
+        'İç Anadolu': 'Central Anatolia',
         'marmara': 'Marmara',
+        'Marmara': 'Marmara',
         'ege': 'Aegean',
+        'Ege': 'Aegean',
         'akdeniz': 'Mediterranean',
+        'Akdeniz': 'Mediterranean',
         'karadeniz': 'Black Sea',
+        'Karadeniz': 'Black Sea',
         'doğu anadolu': 'Eastern Anatolia',
         'dogu anadolu': 'Eastern Anatolia',
+        'Doğu Anadolu': 'Eastern Anatolia',
         'güneydoğu anadolu': 'Southeastern Anatolia',
         'guneydogu anadolu': 'Southeastern Anatolia',
+        'Güneydoğu Anadolu': 'Southeastern Anatolia',
     },
     'soil_type': {
         # Exact matches from frontend (lines 384) and dataset
@@ -90,14 +98,20 @@ CATEGORIES = {
     'fertilizer_type': {
         # Exact matches from frontend (lines 403) and dataset
         'potasyum nitrat': 'Potassium Nitrate',
+        'Potasyum Nitrat': 'Potassium Nitrate',
         'amonyum sülfat': 'Ammonium Sulphate',
         'amonyum sulfat': 'Ammonium Sulphate',
+        'Amonyum Sülfat': 'Ammonium Sulphate',
+        'Amonyum Sulfat': 'Ammonium Sulphate',
         'üre': 'Urea',
         'ure': 'Urea',
+        'Üre': 'Urea',
         # Fallbacks for unsupported types in dataset
         'kompost': 'Urea',
+        'Kompost': 'Urea',
         'organik gübre': 'Urea',
         'organik gubre': 'Urea',
+        'Organik Gübre': 'Urea',
     },
     'irrigation_method': {
         # Exact matches from frontend (lines 429) and dataset
@@ -120,18 +134,26 @@ CATEGORIES = {
         # Frontend sunlight values (lines 448) mapped to weather conditions
         'güneşli': 'sunny',
         'gunesli': 'sunny',
+        'Güneşli': 'sunny',
+        'Gunesli': 'sunny',
         'kısmi gölge': 'cloudy',
         'kismi golge': 'cloudy',
+        'Kısmi Gölge': 'cloudy',
         'gölgeli': 'cloudy',
         'golgeli': 'cloudy',
+        'Gölgeli': 'cloudy',
         'tam gölge': 'cloudy',
         'tam golge': 'cloudy',
+        'Tam Gölge': 'cloudy',
         # Weather conditions
         'yağmurlu': 'rainy',
         'yagmurlu': 'rainy',
+        'Yağmurlu': 'rainy',
         'bulutlu': 'cloudy',
+        'Bulutlu': 'cloudy',
         'rüzgarlı': 'windy',
         'ruzgarli': 'windy',
+        'Rüzgarlı': 'windy',
     },
 }
 

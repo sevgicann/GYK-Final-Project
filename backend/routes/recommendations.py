@@ -175,6 +175,8 @@ def save_environment_data():
         
     except Exception as e:
         logger.error(f"Error saving environment data: {str(e)}")
+        # Try to get target_lang if it exists, otherwise default to 'tr'
+        target_lang = data.get('language', 'tr') if 'data' in locals() else 'tr'
         return jsonify({
             'success': False,
             'message': 'Çevre bilgileri kaydedilirken hata oluştu' if target_lang == 'tr' else 'Error saving environment data',
