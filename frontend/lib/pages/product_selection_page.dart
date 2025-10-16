@@ -35,7 +35,7 @@ class _ProductSelectionPageState extends State<ProductSelectionPage> {
   @override
   Widget build(BuildContext context) {
     return AppLayout(
-      currentPageIndex: 1, // Product Recommendation index
+      currentPageIndex: 2, // Environment Recommendation index
       pageTitle: 'Ürün Seçiminden Ortam Koşulları Önerisi',
       actions: [
         // Reverse Butonu
@@ -50,7 +50,7 @@ class _ProductSelectionPageState extends State<ProductSelectionPage> {
       child: SafeArea(
         child: Column(
           children: [
-            // Scrollable Content
+            // Scrollable Content 
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(AppTheme.paddingLarge),
@@ -363,7 +363,7 @@ class _ProductSelectionPageState extends State<ProductSelectionPage> {
     final canGetRecommendation = _selectedProduct != null && _selectedCity != null;
     
     return CustomButton(
-      text: 'Öneri Al',
+      text: 'Önerileri Al',
       icon: Icons.lightbulb_outline,
       onPressed: canGetRecommendation ? _handleGetRecommendation : null,
       isLoading: _isLoading,

@@ -16,7 +16,7 @@ class Translations {
       'crop_description': 'Toprak ve iklim koşullarınıza göre en uygun ürün seçimi için önerileri görüntüleyin.',
       'environment_description': 'En iyi yetiştirme koşulları için toprak ve iklim verilerinizi analiz ederek kişiselleştirilmiş öneriler alın.',
       'get_recommendations': 'Önerileri Al',
-      'analyze_environment': 'Ortam Önerisi',
+      'analyze_environment': 'Önerileri Al',
       'documentation_coming_soon': 'Dökümantasyon yakında gelecek',
       'user_profile_coming_soon': 'Kullanıcı profili yakında gelecek',
       'search_coming_soon': 'Arama özelliği yakında gelecek',

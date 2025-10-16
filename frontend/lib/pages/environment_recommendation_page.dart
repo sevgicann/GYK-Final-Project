@@ -13,6 +13,8 @@ import '../services/product_service.dart';
 import '../services/region_service.dart';
 import '../services/image_service.dart';
 import '../services/location_service.dart';
+import '../services/my_products_service.dart';
+import '../services/my_environments_service.dart';
 import '../models/product.dart';
 import '../data/turkish_cities.dart';
 
@@ -51,6 +53,8 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
   final ImageService _imageService = ImageService();
   final ProductService _productService = ProductService();
   final LocationService _locationService = LocationService();
+  final MyProductsService _myProductsService = MyProductsService();
+  final MyEnvironmentsService _myEnvironmentsService = MyEnvironmentsService();
   
   // ScaffoldMessenger referansını kaydet
   ScaffoldMessengerState? _scaffoldMessenger;
@@ -160,6 +164,9 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
             });
             _showProductRecommendationsBottomSheet();
             
+            // Ortam verilerini kaydet
+            await _saveEnvironmentDataToMyEnvironments();
+            
             // Başarı mesajını göster
             if (_scaffoldMessenger != null) {
               _scaffoldMessenger!.showSnackBar(
@@ -195,7 +202,7 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
   @override
   Widget build(BuildContext context) {
     return AppLayout(
-      currentPageIndex: 2, // Environment Recommendation index
+      currentPageIndex: 1, // Product Recommendation index
       pageTitle: 'Ortam Koşullarından Ürün Tahmini',
       actions: [
         // Reverse Butonu
@@ -1173,6 +1180,25 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
                         ],
                       ),
                     ),
+                    const SizedBox(width: AppTheme.paddingMedium),
+                    // Add button
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryColor,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: IconButton(
+                        onPressed: () => _addProductToCart(product),
+                        icon: const Icon(
+                          Icons.add,
+                          color: AppTheme.surfaceColor,
+                          size: 20,
+                        ),
+                        padding: EdgeInsets.zero,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -1181,5 +1207,69 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
         ),
       ],
     );
+  }
+
+  void _addProductToCart(Product product) async {
+    try {
+      // Save product to My Products
+      await _myProductsService.saveProduct(product);
+      
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '${product.name} ürünlerime eklendi',
+            style: const TextStyle(color: Colors.white),
+          ),
+          backgroundColor: AppTheme.primaryColor,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      
+      print('Added ${product.name} to My Products');
+    } catch (e) {
+      // Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Ürün eklenirken hata oluştu: $e',
+            style: const TextStyle(color: Colors.white),
+          ),
+          backgroundColor: AppTheme.errorColor,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+      
+      print('Error adding product to My Products: $e');
+    }
+  }
+
+  Future<void> _saveEnvironmentDataToMyEnvironments() async {
+    try {
+      // Ortam verilerini hazırla
+      final environmentData = {
+        'ph': _phController.text.isNotEmpty ? _phController.text : '6.5',
+        'nitrogen': _nitrogenController.text.isNotEmpty ? _nitrogenController.text : '120',
+        'phosphorus': _phosphorusController.text.isNotEmpty ? _phosphorusController.text : '60',
+        'potassium': _potassiumController.text.isNotEmpty ? _potassiumController.text : '225',
+        'humidity': _humidityController.text.isNotEmpty ? _humidityController.text : '26',
+        'temperature': _temperatureController.text.isNotEmpty ? _temperatureController.text : '23',
+        'rainfall': _rainfallController.text.isNotEmpty ? _rainfallController.text : '850',
+        'region': _selectedRegion ?? 'İç Anadolu',
+        'soilType': _selectedSoilType ?? 'Tınlı Toprak',
+        'fertilizer': _selectedFertilizer ?? 'Organik',
+        'irrigation': _selectedIrrigation ?? 'Damla Sulama',
+        'sunlight': _selectedSunlight ?? 'Tam Güneş',
+        'city': _selectedCity ?? 'Ankara',
+      };
+
+      // Ortam verilerini kaydet
+      await _myEnvironmentsService.saveEnvironment(environmentData);
+      
+      print('Environment data saved to My Environments successfully');
+    } catch (e) {
+      print('Error saving environment data to My Environments: $e');
+      // Hata durumunda kullanıcıya bildirim gösterme, sadece logla
+    }
   }
 }

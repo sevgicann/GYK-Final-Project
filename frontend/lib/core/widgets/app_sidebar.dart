@@ -302,16 +302,16 @@ class _AppSidebarState extends State<AppSidebar> {
         AppRouter.navigateAndReplace(context, AppRouter.dashboard);
         break;
       case 1: // Product Recommendation
-        AppRouter.navigateTo(context, AppRouter.productSelection);
-        break;
-      case 2: // Environment Recommendation
         AppRouter.navigateTo(context, AppRouter.environmentRecommendation);
         break;
+      case 2: // Environment Recommendation
+        AppRouter.navigateTo(context, AppRouter.productSelection);
+        break;
       case 3: // My Products
-        _showMyProductsPlaceholder();
+        AppRouter.navigateTo(context, AppRouter.myProducts);
         break;
       case 4: // My Environments
-        _showMyEnvironmentsPlaceholder();
+        AppRouter.navigateTo(context, AppRouter.myEnvironments);
         break;
       case 5: // Documents
         _showDocumentsPlaceholder();
