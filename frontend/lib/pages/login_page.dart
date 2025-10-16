@@ -5,6 +5,8 @@ import '../core/navigation/app_router.dart';
 import '../core/widgets/app_button.dart';
 import '../core/utils/app_extensions.dart';
 import '../services/auth_service.dart';
+import '../core/language/language_service.dart';
+import '../core/language/translations.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -18,15 +20,38 @@ class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _authService = AuthService();
+  final _languageService = LanguageService();
   
   bool _isLoading = false;
   bool _obscurePassword = true;
 
   @override
+  void initState() {
+    super.initState();
+    _languageService.initialize().then((_) {
+      // Initialize and add listener after language is loaded
+      _languageService.addListener(_onLanguageChanged);
+      // Trigger initial rebuild to show correct language
+      if (mounted) {
+        setState(() {});
+      }
+    });
+  }
+
+  @override
   void dispose() {
+    _languageService.removeListener(_onLanguageChanged);
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  void _onLanguageChanged() {
+    if (mounted) {
+      setState(() {
+        // Trigger rebuild when language changes
+      });
+    }
   }
 
   @override
@@ -40,6 +65,26 @@ class _LoginPageState extends State<LoginPage> {
           icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimaryColor),
           onPressed: () => Navigator.of(context).pop(),
         ),
+        actions: [
+          // Language Selector
+          Container(
+            margin: const EdgeInsets.only(right: AppTheme.paddingMedium),
+            child: DropdownButton<String>(
+              value: _languageService.currentLanguageDisplayName,
+              underline: Container(),
+              icon: const Icon(Icons.language, color: AppTheme.textPrimaryColor),
+              items: const [
+                DropdownMenuItem(value: 'Türkçe', child: Text('Türkçe')),
+                DropdownMenuItem(value: 'English', child: Text('English')),
+              ],
+              onChanged: (String? newValue) {
+                if (newValue != null) {
+                  _languageService.setLanguageFromDisplayName(newValue);
+                }
+              },
+            ),
+          ),
+        ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -109,9 +154,9 @@ class _LoginPageState extends State<LoginPage> {
           ],
         ),
         const SizedBox(height: AppTheme.paddingSmall),
-        const Text(
-          'Akıllı Tarım Çözümleri',
-          style: TextStyle(
+        Text(
+          Translations.get('smart_agriculture_solutions', _languageService.currentLanguage),
+          style: const TextStyle(
             fontSize: AppTheme.fontSizeXLarge,
             fontWeight: AppTheme.fontWeightMedium,
             color: AppTheme.textSecondaryColor,
@@ -127,13 +172,13 @@ class _LoginPageState extends State<LoginPage> {
         TextFormField(
           controller: _emailController,
           keyboardType: TextInputType.emailAddress,
-          decoration: const InputDecoration(
-            labelText: 'E-posta',
-            prefixIcon: Icon(
+          decoration: InputDecoration(
+            labelText: Translations.get('email', _languageService.currentLanguage),
+            prefixIcon: const Icon(
               Icons.email_outlined,
               color: AppTheme.primaryColor,
             ),
-            border: OutlineInputBorder(),
+            border: const OutlineInputBorder(),
             filled: true,
             fillColor: AppTheme.surfaceColor,
           ),
@@ -144,7 +189,7 @@ class _LoginPageState extends State<LoginPage> {
           controller: _passwordController,
           obscureText: _obscurePassword,
           decoration: InputDecoration(
-            labelText: 'Şifre',
+            labelText: Translations.get('password', _languageService.currentLanguage),
             prefixIcon: const Icon(
               Icons.lock_outline,
               color: AppTheme.primaryColor,
@@ -171,7 +216,7 @@ class _LoginPageState extends State<LoginPage> {
 
   Widget _buildLoginButton() {
     return AppButton(
-      text: 'Giriş Yap',
+      text: Translations.get('login', _languageService.currentLanguage),
       onPressed: _handleLogin,
       isLoading: _isLoading,
       isFullWidth: true,
@@ -182,18 +227,18 @@ class _LoginPageState extends State<LoginPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Text(
-          'Hesabınız yok mu? ',
-          style: TextStyle(
+        Text(
+          Translations.get('no_account', _languageService.currentLanguage),
+          style: const TextStyle(
             fontSize: AppTheme.fontSizeMedium,
             color: AppTheme.textSecondaryColor,
           ),
         ),
         GestureDetector(
           onTap: () => Navigator.of(context).pop(),
-          child: const Text(
-            'Kayıt Ol',
-            style: TextStyle(
+          child: Text(
+            Translations.get('register', _languageService.currentLanguage),
+            style: const TextStyle(
               fontSize: AppTheme.fontSizeMedium,
               color: AppTheme.primaryColor,
               fontWeight: AppTheme.fontWeightBold,
@@ -225,10 +270,10 @@ class _LoginPageState extends State<LoginPage> {
 
       print('✅ Login successful for user: ${user.name}');
       
-      // Başarılı giriş sonrası ürün seçimi sayfasına yönlendir
+      // Başarılı giriş sonrası dashboard'a yönlendir
       if (mounted) {
         context.showSnackBar('Giriş başarılı! Hoş geldin ${user.name}');
-        AppRouter.navigateAndReplace(context, AppRouter.productSelection);
+        AppRouter.navigateAndReplace(context, AppRouter.dashboard);
       }
     } catch (e) {
       print('❌ Login error: $e');

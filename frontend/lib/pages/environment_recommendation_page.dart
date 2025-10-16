@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/theme/app_theme.dart';
 import '../core/validation/validators.dart';
 import '../core/navigation/app_router.dart';
+import '../core/widgets/app_layout.dart';
 import '../widgets/custom_text_field.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/custom_card.dart';
@@ -193,36 +194,20 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimaryColor),
-          onPressed: () => AppRouter.goBack(context),
+    return AppLayout(
+      currentPageIndex: 2, // Environment Recommendation index
+      pageTitle: 'Ortam Koşullarından Ürün Tahmini',
+      actions: [
+        // Reverse Butonu
+        IconButton(
+          icon: const Icon(Icons.swap_horiz, color: AppTheme.textPrimaryColor),
+          onPressed: () {
+            AppRouter.navigateTo(context, AppRouter.productSelection);
+          },
+          tooltip: 'Ürün Seçiminden Ortam Koşulları Önerisi',
         ),
-        title: const Text(
-          'Ortam Koşullarından Ürün Tahmini',
-          style: TextStyle(
-            color: AppTheme.textPrimaryColor,
-            fontWeight: AppTheme.fontWeightBold,
-            fontSize: AppTheme.fontSizeLarge,
-          ),
-        ),
-        centerTitle: true,
-        actions: [
-          // Reverse Butonu
-          IconButton(
-            icon: const Icon(Icons.swap_horiz, color: AppTheme.textPrimaryColor),
-            onPressed: () {
-              AppRouter.navigateTo(context, AppRouter.productSelection);
-            },
-            tooltip: 'Ürün Seçiminden Ortam Koşulları Önerisi',
-          ),
-        ],
-      ),
-      body: SafeArea(
+      ],
+      child: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(AppTheme.paddingLarge),
           child: Form(

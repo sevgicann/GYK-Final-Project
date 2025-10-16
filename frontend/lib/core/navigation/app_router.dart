@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../pages/register_page.dart';
 import '../../pages/login_page.dart';
+import '../../pages/dashboard_page.dart';
 import '../../pages/home_page.dart';
 import '../../pages/product_selection_page.dart';
 import '../../pages/environment_recommendation_page.dart';
@@ -8,6 +9,7 @@ import '../../pages/environment_recommendation_page.dart';
 class AppRouter {
   static const String register = '/register';
   static const String login = '/login';
+  static const String dashboard = '/dashboard';
   static const String home = '/home';
   static const String productSelection = '/product-selection';
   static const String environmentRecommendation = '/environment-recommendation';
@@ -23,6 +25,12 @@ class AppRouter {
       case login:
         return MaterialPageRoute(
           builder: (_) => const LoginPage(),
+          settings: settings,
+        );
+      
+      case dashboard:
+        return MaterialPageRoute(
+          builder: (_) => const DashboardPage(),
           settings: settings,
         );
       

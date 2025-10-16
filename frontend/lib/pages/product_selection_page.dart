@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/theme/app_theme.dart';
 import '../core/navigation/app_router.dart';
+import '../core/widgets/app_layout.dart';
 import '../models/product.dart';
 import '../services/product_service.dart';
 import '../services/image_service.dart';
@@ -33,36 +34,20 @@ class _ProductSelectionPageState extends State<ProductSelectionPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimaryColor),
-          onPressed: () => AppRouter.goBack(context),
+    return AppLayout(
+      currentPageIndex: 1, // Product Recommendation index
+      pageTitle: 'Ürün Seçiminden Ortam Koşulları Önerisi',
+      actions: [
+        // Reverse Butonu
+        IconButton(
+          icon: const Icon(Icons.swap_horiz, color: AppTheme.textPrimaryColor),
+          onPressed: () {
+            AppRouter.navigateTo(context, AppRouter.environmentRecommendation);
+          },
+          tooltip: 'Ortam Koşullarından Ürün Tahmini',
         ),
-        title: const Text(
-          'Ürün Seçiminden Ortam Koşulları Önerisi',
-          style: TextStyle(
-            color: AppTheme.textPrimaryColor,
-            fontWeight: AppTheme.fontWeightBold,
-            fontSize: AppTheme.fontSizeLarge,
-          ),
-        ),
-        centerTitle: true,
-        actions: [
-          // Reverse Butonu
-          IconButton(
-            icon: const Icon(Icons.swap_horiz, color: AppTheme.textPrimaryColor),
-            onPressed: () {
-              AppRouter.navigateTo(context, AppRouter.environmentRecommendation);
-            },
-            tooltip: 'Ortam Koşullarından Ürün Tahmini',
-          ),
-        ],
-      ),
-      body: SafeArea(
+      ],
+      child: SafeArea(
         child: Column(
           children: [
             // Scrollable Content

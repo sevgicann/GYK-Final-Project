@@ -19,6 +19,14 @@ class AuthService {
   // Check if user is logged in
   bool get isLoggedIn => _authToken != null && _currentUser != null;
 
+  // Get current user (async version for consistency)
+  Future<User?> getCurrentUser() async {
+    if (_currentUser == null) {
+      await _loadStoredAuth();
+    }
+    return _currentUser;
+  }
+
   // Initialize auth service
   Future<void> initialize() async {
     await _loadStoredAuth();

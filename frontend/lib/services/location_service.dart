@@ -162,27 +162,27 @@ class LocationService {
     }
     // Aegean Region
     if (lat >= 37.0 && lat <= 40.0 && lng >= 26.0 && lng <= 30.0) {
-      return {'region': 'Aegean', 'city': 'İzmir'};
+      return {'region': 'Ege', 'city': 'İzmir'};
     }
     // Mediterranean Region
     if (lat >= 36.0 && lat <= 38.0 && lng >= 28.0 && lng <= 36.0) {
-      return {'region': 'Mediterranean', 'city': 'Antalya'};
+      return {'region': 'Akdeniz', 'city': 'Antalya'};
     }
     // Central Anatolia
     if (lat >= 38.0 && lat <= 41.0 && lng >= 31.0 && lng <= 38.0) {
-      return {'region': 'Central Anatolia', 'city': 'Ankara'};
+      return {'region': 'İç Anadolu', 'city': 'Ankara'};
     }
     // Black Sea Region
     if (lat >= 40.0 && lat <= 42.0 && lng >= 31.0 && lng <= 42.0) {
-      return {'region': 'Black Sea', 'city': 'Samsun'};
+      return {'region': 'Karadeniz', 'city': 'Samsun'};
     }
     // Eastern Anatolia
     if (lat >= 38.0 && lat <= 42.0 && lng >= 38.0 && lng <= 45.0) {
-      return {'region': 'Eastern Anatolia', 'city': 'Erzurum'};
+      return {'region': 'Doğu Anadolu', 'city': 'Erzurum'};
     }
     // Southeastern Anatolia
     if (lat >= 36.0 && lat <= 39.0 && lng >= 36.0 && lng <= 43.0) {
-      return {'region': 'Southeastern Anatolia', 'city': 'Gaziantep'};
+      return {'region': 'Güneydoğu Anadolu', 'city': 'Gaziantep'};
     }
     
     // Default to Marmara if can't determine
