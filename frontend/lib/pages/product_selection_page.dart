@@ -238,6 +238,7 @@ class _ProductSelectionPageState extends State<ProductSelectionPage> {
                 icon: Icons.location_city,
                 title: 'Şehri Manuel Seç',
                 isSelected: _isManualSelected,
+                isSecondButton: true, // İkinci buton her zaman yeşil
                 onTap: () {
                   setState(() {
                     _isGpsSelected = false;
@@ -258,15 +259,20 @@ class _ProductSelectionPageState extends State<ProductSelectionPage> {
     required String title,
     required bool isSelected,
     required VoidCallback onTap,
+    bool isSecondButton = false, // İkinci buton için parametre
   }) {
+    // İkinci buton her zaman yeşil olsun
+    final shouldBeGreen = isSelected || isSecondButton;
+    
     return GestureDetector(
       onTap: onTap,
+      behavior: HitTestBehavior.translucent,
       child: Container(
         padding: const EdgeInsets.all(AppTheme.paddingMedium),
         decoration: BoxDecoration(
-          color: isSelected ? AppTheme.primaryColor : AppTheme.surfaceColor,
+          color: shouldBeGreen ? AppTheme.primaryColor : AppTheme.surfaceColor,
           border: Border.all(
-            color: isSelected ? AppTheme.primaryColor : AppTheme.primaryLightColor,
+            color: shouldBeGreen ? AppTheme.primaryColor : AppTheme.primaryLightColor,
             width: 2,
           ),
           borderRadius: BorderRadius.circular(AppTheme.borderRadiusLarge),
@@ -275,7 +281,7 @@ class _ProductSelectionPageState extends State<ProductSelectionPage> {
           children: [
             Icon(
               icon,
-              color: isSelected ? AppTheme.surfaceColor : AppTheme.primaryLightColor,
+              color: shouldBeGreen ? AppTheme.surfaceColor : AppTheme.primaryLightColor,
               size: AppTheme.iconSize,
             ),
             const SizedBox(height: AppTheme.paddingSmall),
@@ -283,7 +289,7 @@ class _ProductSelectionPageState extends State<ProductSelectionPage> {
               title,
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: isSelected ? AppTheme.surfaceColor : AppTheme.primaryLightColor,
+                color: shouldBeGreen ? AppTheme.surfaceColor : AppTheme.primaryLightColor,
                 fontSize: AppTheme.fontSizeSmall,
                 fontWeight: AppTheme.fontWeightMedium,
               ),
@@ -475,6 +481,7 @@ class _ProductSelectionPageState extends State<ProductSelectionPage> {
   void _showCitySelectionDialog() {
     showDialog(
       context: context,
+      barrierColor: Colors.transparent,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Şehir Seçin'),
@@ -584,13 +591,14 @@ class _ProductSelectionPageState extends State<ProductSelectionPage> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      barrierColor: Colors.transparent,
       builder: (context) => _buildRecommendationsBottomSheet(responseData),
     );
   }
 
   Widget _buildRecommendationsBottomSheet([Map<String, dynamic>? responseData]) {
     return Container(
-      height: MediaQuery.of(context).size.height * 0.8,
+      height: MediaQuery.of(context).size.height * 0.6,
       decoration: const BoxDecoration(
         color: AppTheme.backgroundColor,
         borderRadius: BorderRadius.only(

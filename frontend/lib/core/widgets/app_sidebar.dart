@@ -81,36 +81,40 @@ class _AppSidebarState extends State<AppSidebar> {
       child: Column(
         children: [
           // TerraMind Logo
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppTheme.paddingLarge,
-              vertical: AppTheme.paddingMedium,
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryColor,
-                    shape: BoxShape.circle,
+          GestureDetector(
+            onTap: () => _handleNavigation(0), // Navigate to dashboard
+            behavior: HitTestBehavior.translucent,
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppTheme.paddingLarge,
+                vertical: AppTheme.paddingMedium,
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryColor,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.eco,
+                      color: Colors.white,
+                      size: 24,
+                    ),
                   ),
-                  child: const Icon(
-                    Icons.eco,
-                    color: Colors.white,
-                    size: 24,
+                  const SizedBox(width: AppTheme.paddingMedium),
+                  const Text(
+                    'TerraMind',
+                    style: TextStyle(
+                      fontSize: AppTheme.fontSizeXLarge,
+                      fontWeight: AppTheme.fontWeightBold,
+                      color: AppTheme.textPrimaryColor,
+                    ),
                   ),
-                ),
-                const SizedBox(width: AppTheme.paddingMedium),
-                const Text(
-                  'TerraMind',
-                  style: TextStyle(
-                    fontSize: AppTheme.fontSizeXLarge,
-                    fontWeight: AppTheme.fontWeightBold,
-                    color: AppTheme.textPrimaryColor,
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           
@@ -123,8 +127,8 @@ class _AppSidebarState extends State<AppSidebar> {
               bottom: AppTheme.paddingMedium,
             ),
             padding: const EdgeInsets.symmetric(
-              horizontal: AppTheme.paddingSmall,
-              vertical: AppTheme.paddingSmall,
+              horizontal: AppTheme.paddingMedium,
+              vertical: AppTheme.paddingMedium,
             ),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.8),
@@ -138,8 +142,8 @@ class _AppSidebarState extends State<AppSidebar> {
               children: [
                 // User Avatar
                 Container(
-                  width: 24,
-                  height: 24,
+                  width: 32,
+                  height: 32,
                   decoration: BoxDecoration(
                     color: AppTheme.primaryColor,
                     shape: BoxShape.circle,
@@ -147,7 +151,7 @@ class _AppSidebarState extends State<AppSidebar> {
                   child: const Icon(
                     Icons.person,
                     color: Colors.white,
-                    size: 14,
+                    size: 18,
                   ),
                 ),
                 const SizedBox(width: AppTheme.paddingSmall),
@@ -159,18 +163,18 @@ class _AppSidebarState extends State<AppSidebar> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        _currentUser?.name ?? 'Kullanıcı',
+                        _currentUser?.name ?? 'Test Kullanıcı',
                         style: const TextStyle(
-                          fontSize: AppTheme.fontSizeXSmall,
+                          fontSize: AppTheme.fontSizeSmall,
                           fontWeight: AppTheme.fontWeightMedium,
                           color: AppTheme.textPrimaryColor,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
                       Text(
-                        _currentUser?.email ?? 'email@example.com',
+                        _currentUser?.email ?? 'test@gmail.com',
                         style: const TextStyle(
-                          fontSize: 9,
+                          fontSize: AppTheme.fontSizeXSmall,
                           color: AppTheme.textSecondaryColor,
                         ),
                         overflow: TextOverflow.ellipsis,
@@ -187,12 +191,6 @@ class _AppSidebarState extends State<AppSidebar> {
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: AppTheme.paddingMedium),
               children: [
-                _buildNavigationItem(
-                  icon: Icons.dashboard,
-                  title: Translations.get('dashboard', _languageService.currentLanguage),
-                  index: 0,
-                  isSelected: widget.selectedIndex == 0,
-                ),
                 _buildNavigationItem(
                   icon: Icons.agriculture,
                   title: Translations.get('crop', _languageService.currentLanguage),
@@ -224,8 +222,8 @@ class _AppSidebarState extends State<AppSidebar> {
                   isSelected: widget.selectedIndex == 5,
                 ),
                 _buildNavigationItem(
-                  icon: Icons.shopping_cart,
-                  title: Translations.get('cart', _languageService.currentLanguage),
+                  icon: Icons.router,
+                  title: 'Cihazlarım',
                   index: 6,
                   isSelected: widget.selectedIndex == 6,
                 ),
@@ -236,6 +234,7 @@ class _AppSidebarState extends State<AppSidebar> {
           // Bottom Menu Icon - Toggle Sidebar
           GestureDetector(
             onTap: widget.onToggle,
+            behavior: HitTestBehavior.translucent,
             child: Container(
               padding: const EdgeInsets.all(AppTheme.paddingLarge),
               child: Icon(
@@ -263,6 +262,7 @@ class _AppSidebarState extends State<AppSidebar> {
         child: InkWell(
           onTap: () => _handleNavigation(index),
           borderRadius: BorderRadius.circular(AppTheme.borderRadius),
+          splashFactory: NoSplash.splashFactory,
           child: Container(
             padding: const EdgeInsets.symmetric(
               horizontal: AppTheme.paddingMedium,
@@ -325,6 +325,7 @@ class _AppSidebarState extends State<AppSidebar> {
   void _showMyProductsPlaceholder() {
     showDialog(
       context: context,
+      barrierColor: Colors.transparent,
       builder: (context) => AlertDialog(
         title: Text(Translations.get('my_products', _languageService.currentLanguage)),
         content: Text(Translations.get('my_products_message', _languageService.currentLanguage)),
@@ -341,6 +342,7 @@ class _AppSidebarState extends State<AppSidebar> {
   void _showMyEnvironmentsPlaceholder() {
     showDialog(
       context: context,
+      barrierColor: Colors.transparent,
       builder: (context) => AlertDialog(
         title: Text(Translations.get('my_environments', _languageService.currentLanguage)),
         content: Text(Translations.get('my_environments_message', _languageService.currentLanguage)),
@@ -357,6 +359,7 @@ class _AppSidebarState extends State<AppSidebar> {
   void _showDocumentsPlaceholder() {
     showDialog(
       context: context,
+      barrierColor: Colors.transparent,
       builder: (context) => AlertDialog(
         title: Text(Translations.get('documents_title', _languageService.currentLanguage)),
         content: Text(Translations.get('documents_message', _languageService.currentLanguage)),
@@ -373,9 +376,10 @@ class _AppSidebarState extends State<AppSidebar> {
   void _showCartPlaceholder() {
     showDialog(
       context: context,
+      barrierColor: Colors.transparent,
       builder: (context) => AlertDialog(
-        title: Text(Translations.get('cart', _languageService.currentLanguage)),
-        content: Text(Translations.get('cart_message', _languageService.currentLanguage)),
+        title: const Text('Cihazlarım'),
+        content: const Text('Cihazlarım sayfası yakında gelecek.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),

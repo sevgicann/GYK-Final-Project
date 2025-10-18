@@ -86,6 +86,7 @@ class AppTheme {
           ),
         ),
       ),
+      splashFactory: NoSplash.splashFactory,
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: surfaceColor,

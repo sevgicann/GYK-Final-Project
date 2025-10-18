@@ -20,7 +20,7 @@ class AppLayout extends StatefulWidget {
 }
 
 class _AppLayoutState extends State<AppLayout> {
-  bool _isSidebarVisible = true;
+  bool _isSidebarVisible = false; // Sidebar başlangıçta kapalı
 
   void _toggleSidebar() {
     setState(() {
@@ -31,25 +31,59 @@ class _AppLayoutState extends State<AppLayout> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Row(
+      body: Stack(
         children: [
-          // Left Sidebar - Conditional rendering
-          if (_isSidebarVisible) AppSidebar(
-            selectedIndex: widget.currentPageIndex,
-            isVisible: _isSidebarVisible,
-            onToggle: _toggleSidebar,
-          ),
+          // Main Content Area - Always takes full width
+          _buildMainContent(),
+          
+          // Sidebar Overlay - Only visible when _isSidebarVisible is true
+          if (_isSidebarVisible) _buildSidebarOverlay(),
+        ],
+      ),
+    );
+  }
 
-          // Main Content Area
-          Expanded(
-            child: Column(
-              children: [
-                // Header (if pageTitle is provided)
-                if (widget.pageTitle != null) _buildHeader(),
-                
-                // Content
-                Expanded(child: widget.child),
-              ],
+  Widget _buildMainContent() {
+    return Column(
+      children: [
+        // Header (if pageTitle is provided)
+        if (widget.pageTitle != null) _buildHeader(),
+        
+        // Content
+        Expanded(child: widget.child),
+      ],
+    );
+  }
+
+  Widget _buildSidebarOverlay() {
+    return GestureDetector(
+      onTap: _toggleSidebar, // Tap outside to close
+      behavior: HitTestBehavior.translucent,
+      child: Stack(
+        children: [
+          // Semi-transparent background overlay
+          Container(
+            color: Colors.transparent,
+            width: double.infinity,
+            height: double.infinity,
+          ),
+          
+          // Sidebar positioned on the left
+          Positioned(
+            left: 0,
+            top: 0,
+            bottom: 0,
+            child: GestureDetector(
+              onTap: () {}, // Prevent sidebar tap from closing
+              behavior: HitTestBehavior.translucent,
+              child: Container(
+                width: 250, // Fixed width for sidebar
+                child: AppSidebar(
+                  selectedIndex: widget.currentPageIndex,
+                  isVisible: _isSidebarVisible,
+                  onToggle: _toggleSidebar,
+                ),
+              ),
             ),
           ),
         ],
@@ -72,24 +106,24 @@ class _AppLayoutState extends State<AppLayout> {
       ),
       child: Row(
         children: [
-          // Hamburger menu for mobile/collapsed sidebar
-          if (!_isSidebarVisible)
-            IconButton(
-              onPressed: _toggleSidebar,
-              icon: const Icon(Icons.menu),
-            ),
+          // Hamburger menu - Always visible
+          IconButton(
+            onPressed: _toggleSidebar,
+            icon: const Icon(Icons.menu),
+          ),
 
           // Page Title
-          Text(
-            widget.pageTitle!,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
+          Expanded(
+            child: Text(
+              widget.pageTitle!,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
-          
-          const Spacer(),
 
           // Actions
           if (widget.actions != null) ...widget.actions!,

@@ -40,6 +40,7 @@ class AppCard extends StatelessWidget {
       return InkWell(
         onTap: onTap,
         borderRadius: borderRadius ?? BorderRadius.circular(AppTheme.borderRadius),
+        splashFactory: NoSplash.splashFactory,
         child: card,
       );
     }
