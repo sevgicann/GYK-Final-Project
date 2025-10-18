@@ -25,6 +25,7 @@ class CustomIconButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onPressed,
+      behavior: HitTestBehavior.translucent,
       child: Container(
         padding: padding ?? const EdgeInsets.all(AppTheme.paddingMedium),
         decoration: BoxDecoration(

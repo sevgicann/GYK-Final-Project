@@ -184,6 +184,7 @@ class _HomePageState extends State<HomePage> {
   void _showLocationDialog() {
     showDialog(
       context: context,
+      barrierColor: Colors.transparent,
       builder: (context) => AlertDialog(
         title: const Text('Konum Seçin'),
         content: const Text('Lütfen konumunuzu seçin'),

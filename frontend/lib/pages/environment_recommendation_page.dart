@@ -3,6 +3,8 @@ import '../core/theme/app_theme.dart';
 import '../core/validation/validators.dart';
 import '../core/navigation/app_router.dart';
 import '../core/widgets/app_layout.dart';
+import '../core/utils/responsive_utils.dart';
+import '../core/widgets/responsive_widgets.dart';
 import '../widgets/custom_text_field.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/custom_card.dart';
@@ -299,34 +301,30 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
           const SizedBox(height: AppTheme.paddingLarge),
           Row(
             children: [
-              Expanded(
-                child: _buildLocationOption(
-                  icon: Icons.gps_fixed,
-                  title: 'GPS Konumunu Kullan',
-                  isSelected: _isGpsSelected,
-                  onTap: () {
-                    setState(() {
-                      _isGpsSelected = true;
-                      _isManualSelected = false;
-                    });
-                    _handleGpsLocation();
-                  },
-                ),
+              _buildLocationOption(
+                icon: Icons.gps_fixed,
+                title: 'GPS Konumunu Kullan',
+                isSelected: _isGpsSelected,
+                onTap: () {
+                  setState(() {
+                    _isGpsSelected = true;
+                    _isManualSelected = false;
+                  });
+                  _handleGpsLocation();
+                },
               ),
               const SizedBox(width: AppTheme.paddingMedium),
-              Expanded(
-                child: _buildLocationOption(
-                  icon: Icons.location_city,
-                  title: 'Şehri Manuel Seç',
-                  isSelected: _isManualSelected,
-                  onTap: () {
-                    setState(() {
-                      _isGpsSelected = false;
-                      _isManualSelected = true;
-                    });
-                    _showCitySelectionDialog();
-                  },
-                ),
+              _buildLocationOption(
+                icon: Icons.location_city,
+                title: 'Şehri Manuel Seç',
+                isSelected: _isManualSelected,
+                onTap: () {
+                  setState(() {
+                    _isGpsSelected = false;
+                    _isManualSelected = true;
+                  });
+                  _showCitySelectionDialog();
+                },
               ),
             ],
           ),
@@ -548,136 +546,125 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        ResponsiveText(
           'Toprak Parametreleri (isteğe bağlı):',
           style: TextStyle(
-            fontSize: AppTheme.fontSizeXLarge,
+            fontSize: ResponsiveUtils.getResponsiveFontSize(
+              context,
+              mobile: 18,
+              tablet: 20,
+              desktop: 24,
+            ),
             fontWeight: AppTheme.fontWeightBold,
             color: AppTheme.textPrimaryColor,
           ),
         ),
-        const SizedBox(height: AppTheme.paddingMedium),
+        SizedBox(height: ResponsiveUtils.getResponsiveSpacing(
+          context,
+          mobile: 12,
+          tablet: 16,
+          desktop: 20,
+        )),
         
-        // İlk satır - 6 input
-        Row(
+        // Responsive Grid for soil parameters
+        ResponsiveGrid(
+          spacing: ResponsiveUtils.getResponsiveSpacing(
+            context,
+            mobile: 8,
+            tablet: 12,
+            desktop: 16,
+          ),
+          runSpacing: ResponsiveUtils.getResponsiveSpacing(
+            context,
+            mobile: 8,
+            tablet: 12,
+            desktop: 16,
+          ),
           children: [
-            Expanded(
-              child: CustomTextField(
-                controller: _phController,
-                label: 'pH',
-                hint: 'pH',
-                keyboardType: TextInputType.number,
-                validator: (value) => Validators.range(value, 4.0, 9.0, 'pH'),
-                onChanged: (value) {
-                  if (value.isNotEmpty) {
-                    _saveSoilData();
-                  }
-                },
-              ),
+            CustomTextField(
+              controller: _phController,
+              label: 'pH',
+              hint: 'pH',
+              keyboardType: TextInputType.number,
+              validator: (value) => Validators.range(value, 4.0, 9.0, 'pH'),
+              onChanged: (value) {
+                if (value.isNotEmpty) {
+                  _saveSoilData();
+                }
+              },
             ),
-            const SizedBox(width: AppTheme.paddingSmall),
-            Expanded(
-              child: CustomTextField(
-                controller: _nitrogenController,
-                label: 'Azot (ppm)',
-                hint: 'Azot (ppm)',
-                keyboardType: TextInputType.number,
-                validator: (value) => Validators.range(value, 0.0, 300.0, 'Azot'),
-                onChanged: (value) {
-                  if (value.isNotEmpty) {
-                    _saveSoilData();
-                  }
-                },
-              ),
+            CustomTextField(
+              controller: _nitrogenController,
+              label: 'Azot (ppm)',
+              hint: 'Azot (ppm)',
+              keyboardType: TextInputType.number,
+              validator: (value) => Validators.range(value, 0.0, 300.0, 'Azot'),
+              onChanged: (value) {
+                if (value.isNotEmpty) {
+                  _saveSoilData();
+                }
+              },
             ),
-            const SizedBox(width: AppTheme.paddingSmall),
-            Expanded(
-              child: CustomTextField(
-                controller: _phosphorusController,
-                label: 'Fosfor (ppm)',
-                hint: 'Fosfor (ppm)',
-                keyboardType: TextInputType.number,
-                validator: (value) => Validators.range(value, 0.0, 150.0, 'Fosfor'),
-                onChanged: (value) {
-                  if (value.isNotEmpty) {
-                    _saveSoilData();
-                  }
-                },
-              ),
+            CustomTextField(
+              controller: _phosphorusController,
+              label: 'Fosfor (ppm)',
+              hint: 'Fosfor (ppm)',
+              keyboardType: TextInputType.number,
+              validator: (value) => Validators.range(value, 0.0, 150.0, 'Fosfor'),
+              onChanged: (value) {
+                if (value.isNotEmpty) {
+                  _saveSoilData();
+                }
+              },
             ),
-            const SizedBox(width: AppTheme.paddingSmall),
-            Expanded(
-              child: CustomTextField(
-                controller: _potassiumController,
-                label: 'Potasyum (ppm)',
-                hint: 'Potasyum (ppm)',
-                keyboardType: TextInputType.number,
-                validator: (value) => Validators.range(value, 0.0, 400.0, 'Potasyum'),
-                onChanged: (value) {
-                  if (value.isNotEmpty) {
-                    _saveSoilData();
-                  }
-                },
-              ),
+            CustomTextField(
+              controller: _potassiumController,
+              label: 'Potasyum (ppm)',
+              hint: 'Potasyum (ppm)',
+              keyboardType: TextInputType.number,
+              validator: (value) => Validators.range(value, 0.0, 400.0, 'Potasyum'),
+              onChanged: (value) {
+                if (value.isNotEmpty) {
+                  _saveSoilData();
+                }
+              },
             ),
-            const SizedBox(width: AppTheme.paddingSmall),
-            Expanded(
-              child: CustomTextField(
-                controller: _humidityController,
-                label: 'Nem %',
-                hint: 'Nem %',
-                keyboardType: TextInputType.number,
-                validator: (value) => Validators.range(value, 0.0, 100.0, 'Nem'),
-                onChanged: (value) {
-                  if (value.isNotEmpty) {
-                    _saveSoilData();
-                  }
-                },
-              ),
+            CustomTextField(
+              controller: _humidityController,
+              label: 'Nem %',
+              hint: 'Nem %',
+              keyboardType: TextInputType.number,
+              validator: (value) => Validators.range(value, 0.0, 100.0, 'Nem'),
+              onChanged: (value) {
+                if (value.isNotEmpty) {
+                  _saveSoilData();
+                }
+              },
             ),
-            const SizedBox(width: AppTheme.paddingSmall),
-            Expanded(
-              child: CustomTextField(
-                controller: _temperatureController,
-                label: 'Sıcaklık °C',
-                hint: 'Sıcaklık °C',
-                keyboardType: TextInputType.number,
-                validator: (value) => Validators.range(value, -10.0, 45.0, 'Sıcaklık'),
-                onChanged: (value) {
-                  if (value.isNotEmpty) {
-                    _saveSoilData();
-                  }
-                },
-              ),
+            CustomTextField(
+              controller: _temperatureController,
+              label: 'Sıcaklık °C',
+              hint: 'Sıcaklık °C',
+              keyboardType: TextInputType.number,
+              validator: (value) => Validators.range(value, -10.0, 45.0, 'Sıcaklık'),
+              onChanged: (value) {
+                if (value.isNotEmpty) {
+                  _saveSoilData();
+                }
+              },
             ),
-          ],
-        ),
-        
-        const SizedBox(height: AppTheme.paddingMedium),
-        
-        // İkinci satır - 1 input
-        Row(
-          children: [
-            Expanded(
-              child: CustomTextField(
-                controller: _rainfallController,
-                label: 'Yağış mm',
-                hint: 'Yağış mm',
-                keyboardType: TextInputType.number,
-                validator: (value) => Validators.range(value, 0.0, 2000.0, 'Yağış'),
-                onChanged: (value) {
-                  if (value.isNotEmpty) {
-                    _saveSoilData();
-                  }
-                },
-              ),
+            CustomTextField(
+              controller: _rainfallController,
+              label: 'Yağış mm',
+              hint: 'Yağış mm',
+              keyboardType: TextInputType.number,
+              validator: (value) => Validators.range(value, 0.0, 2000.0, 'Yağış'),
+              onChanged: (value) {
+                if (value.isNotEmpty) {
+                  _saveSoilData();
+                }
+              },
             ),
-            const SizedBox(width: AppTheme.paddingSmall),
-            const Expanded(child: SizedBox()), // Boş alan
-            const Expanded(child: SizedBox()),
-            const Expanded(child: SizedBox()),
-            const Expanded(child: SizedBox()),
-            const Expanded(child: SizedBox()),
           ],
         ),
       ],
@@ -734,7 +721,7 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(AppTheme.borderRadius),
-                child: Image.network(
+                child: Image.asset(
                   _imageService.getCityImage(_selectedCity!),
                   width: 80,
                   height: 80,
@@ -743,7 +730,7 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
                     width: 80,
                     height: 80,
                     color: AppTheme.primaryLightColor.withOpacity(0.2),
-                    child: const Icon(Icons.broken_image, color: AppTheme.textSecondaryColor),
+                    child: const Icon(Icons.location_city, color: AppTheme.textSecondaryColor),
                   ),
                 ),
               ),
@@ -781,38 +768,59 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
     required bool isSelected,
     required VoidCallback onTap,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(AppTheme.paddingMedium),
-        decoration: BoxDecoration(
-          color: isSelected ? AppTheme.primaryColor : AppTheme.surfaceColor,
-          border: Border.all(
-            color: isSelected ? AppTheme.primaryColor : AppTheme.primaryLightColor,
-            width: 2,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppTheme.borderRadiusLarge),
+        splashFactory: NoSplash.splashFactory,
+        child: Container(
+          padding: EdgeInsets.all(ResponsiveUtils.getResponsiveSpacing(
+            context,
+            mobile: 12,
+            tablet: 16,
+            desktop: 20,
+          )),
+          decoration: BoxDecoration(
+            color: isSelected ? AppTheme.primaryColor : AppTheme.surfaceColor,
+            border: Border.all(
+              color: isSelected ? AppTheme.primaryColor : AppTheme.primaryLightColor,
+              width: 2,
+            ),
+            borderRadius: BorderRadius.circular(AppTheme.borderRadiusLarge),
           ),
-          borderRadius: BorderRadius.circular(AppTheme.borderRadiusLarge),
-        ),
-        child: Column(
-          children: [
-            Icon(
-              icon,
-              color: isSelected ? AppTheme.surfaceColor : AppTheme.primaryLightColor,
-              size: AppTheme.iconSize,
-            ),
-            const SizedBox(height: AppTheme.paddingSmall),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: TextStyle(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
                 color: isSelected ? AppTheme.surfaceColor : AppTheme.primaryLightColor,
-                fontSize: AppTheme.fontSizeSmall,
-                fontWeight: AppTheme.fontWeightMedium,
+                size: ResponsiveUtils.getResponsiveIconSize(context) * 1.2,
               ),
-            ),
+              SizedBox(height: ResponsiveUtils.getResponsiveSpacing(
+                context,
+                mobile: 8,
+                tablet: 12,
+                desktop: 16,
+              )),
+              ResponsiveText(
+                title,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: isSelected ? AppTheme.surfaceColor : AppTheme.primaryLightColor,
+                  fontSize: ResponsiveUtils.getResponsiveFontSize(
+                    context,
+                    mobile: 12,
+                    tablet: 14,
+                    desktop: 16,
+                  ),
+                  fontWeight: AppTheme.fontWeightMedium,
+                ),
+              ),
           ],
         ),
       ),
+    ),
     );
   }
 
@@ -955,6 +963,7 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
   void _showCitySelectionDialog() {
     showDialog(
       context: context,
+      barrierColor: Colors.transparent,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Şehir Seçin'),
@@ -1023,13 +1032,14 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      barrierColor: Colors.transparent,
       builder: (context) => _buildProductRecommendationsBottomSheet(),
     );
   }
 
   Widget _buildProductRecommendationsBottomSheet() {
     return Container(
-      height: MediaQuery.of(context).size.height * 0.8,
+      height: MediaQuery.of(context).size.height * 0.6,
       decoration: BoxDecoration(
         color: Colors.lightBlue.shade50, // Açık mavi background
         borderRadius: const BorderRadius.only(
@@ -1114,45 +1124,47 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
           itemBuilder: (context, index) {
             final product = _recommendedProducts[index];
             return Padding(
-              padding: const EdgeInsets.only(bottom: AppTheme.paddingLarge),
+              padding: const EdgeInsets.only(bottom: AppTheme.paddingSmall), // Küçültüldü
               child: CustomCard(
-                child: Row(
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: const BoxDecoration(
-                        color: AppTheme.primaryColor,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Center(
-                        child: Text(
-                          '${index + 1}',
-                          style: const TextStyle(
-                            color: AppTheme.surfaceColor,
-                            fontSize: AppTheme.fontSizeLarge,
-                            fontWeight: AppTheme.fontWeightBold,
+                child: Padding(
+                  padding: const EdgeInsets.all(AppTheme.paddingSmall), // Padding eklendi
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 30, // Küçültüldü
+                        height: 30, // Küçültüldü
+                        decoration: const BoxDecoration(
+                          color: AppTheme.primaryColor,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: Text(
+                            '${index + 1}',
+                            style: const TextStyle(
+                              color: AppTheme.surfaceColor,
+                              fontSize: AppTheme.fontSizeMedium, // Küçültüldü
+                              fontWeight: AppTheme.fontWeightBold,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: AppTheme.paddingLarge),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(AppTheme.borderRadius),
-                      child: Image.network(
-                        _imageService.getProductImage(product.name),
-                        width: 80,
-                        height: 80,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Container(
-                          width: 80,
-                          height: 80,
-                          color: AppTheme.primaryLightColor.withOpacity(0.2),
-                          child: const Icon(Icons.broken_image, color: AppTheme.textSecondaryColor),
+                      const SizedBox(width: AppTheme.paddingSmall), // Küçültüldü
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(AppTheme.borderRadius),
+                        child: Image.network(
+                          _imageService.getProductImage(product.name),
+                          width: 50, // Küçültüldü
+                          height: 50, // Küçültüldü
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => Container(
+                            width: 50, // Küçültüldü
+                            height: 50, // Küçültüldü
+                            color: AppTheme.primaryLightColor.withOpacity(0.2),
+                            child: const Icon(Icons.broken_image, color: AppTheme.textSecondaryColor),
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: AppTheme.paddingLarge),
+                      const SizedBox(width: AppTheme.paddingSmall), // Küçültüldü
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1160,48 +1172,60 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
                           Text(
                             product.name,
                             style: const TextStyle(
-                              fontSize: AppTheme.fontSizeXLarge,
+                              fontSize: AppTheme.fontSizeLarge, // Küçültüldü
                               fontWeight: AppTheme.fontWeightBold,
                               color: AppTheme.textPrimaryColor,
                             ),
                           ),
-                          const SizedBox(height: AppTheme.paddingSmall),
+                          const SizedBox(height: 4), // Küçültüldü
                           Text(
                             product.category,
-                            style: AppTheme.bodyStyle.copyWith(color: AppTheme.textSecondaryColor),
+                            style: AppTheme.bodyStyle.copyWith(
+                              color: AppTheme.textSecondaryColor,
+                              fontSize: AppTheme.fontSizeSmall, // Küçültüldü
+                            ),
                           ),
-                          const SizedBox(height: AppTheme.paddingSmall),
+                          const SizedBox(height: 4), // Küçültüldü
                           Text(
                             product.description,
-                            style: AppTheme.bodyStyle,
-                            maxLines: 2,
+                            style: AppTheme.bodyStyle.copyWith(
+                              fontSize: AppTheme.fontSizeSmall, // Küçültüldü
+                            ),
+                            maxLines: 1, // Tek satır
                             overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(width: AppTheme.paddingMedium),
+                    const SizedBox(width: AppTheme.paddingSmall), // Küçültüldü
                     // Add button
                     Container(
-                      width: 40,
-                      height: 40,
+                      width: 32, // Küçültüldü
+                      height: 32, // Küçültüldü
                       decoration: BoxDecoration(
-                        color: AppTheme.primaryColor,
-                        borderRadius: BorderRadius.circular(8),
+                        color: Colors.transparent,
+                        border: Border.all(
+                          color: AppTheme.primaryColor,
+                          width: 2,
+                        ),
+                        borderRadius: BorderRadius.circular(6), // Küçültüldü
                       ),
                       child: IconButton(
                         onPressed: () => _addProductToCart(product),
                         icon: const Icon(
                           Icons.add,
-                          color: AppTheme.surfaceColor,
-                          size: 20,
+                          color: AppTheme.primaryColor,
+                          size: 16, // Küçültüldü
                         ),
                         padding: EdgeInsets.zero,
+                        splashColor: Colors.transparent,
+                        highlightColor: Colors.transparent,
                       ),
                     ),
                   ],
                 ),
               ),
+            ),
             );
           },
         ),

@@ -93,15 +93,20 @@ class _MyEnvironmentsPageState extends State<MyEnvironmentsPage> {
                       ),
                     ),
                   ),
+                  const SizedBox(width: AppTheme.paddingMedium), // Spacing eklendi
                   ElevatedButton.icon(
                     onPressed: () {
                       AppRouter.navigateTo(context, AppRouter.environmentRecommendation);
                     },
-                    icon: const Icon(Icons.add, size: 18),
+                    icon: const Icon(Icons.add, size: 16), // Icon boyutu küçültüldü
                     label: const Text('Yeni Ortam Ekle'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.primaryColor,
                       foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppTheme.paddingMedium, // Padding küçültüldü
+                        vertical: AppTheme.paddingSmall,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(AppTheme.borderRadius),
                       ),
@@ -284,7 +289,8 @@ class _MyEnvironmentsPageState extends State<MyEnvironmentsPage> {
 
   Widget _buildDataItem(String label, String value) {
     return Container(
-      padding: const EdgeInsets.all(AppTheme.paddingSmall),
+      height: 60, // Yükseklik daha da artırıldı
+      padding: const EdgeInsets.all(6), // Padding azaltıldı
       decoration: BoxDecoration(
         color: AppTheme.primaryLightColor.withOpacity(0.1),
         borderRadius: BorderRadius.circular(AppTheme.borderRadius),
@@ -296,22 +302,27 @@ class _MyEnvironmentsPageState extends State<MyEnvironmentsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             label,
             style: AppTheme.bodyStyle.copyWith(
               color: AppTheme.textSecondaryColor,
-              fontSize: AppTheme.fontSizeSmall,
+              fontSize: 11, // Font boyutu küçültüldü
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 2),
           Text(
             value,
             style: const TextStyle(
-              fontSize: AppTheme.fontSizeMedium,
+              fontSize: 12, // Font boyutu küçültüldü
               fontWeight: AppTheme.fontWeightBold,
               color: AppTheme.textPrimaryColor,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),

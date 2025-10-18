@@ -36,6 +36,7 @@ extension BuildContextExtensions on BuildContext {
   Future<T?> showAppDialog<T>(Widget dialog) {
     return showDialog<T>(
       context: this,
+      barrierColor: Colors.transparent,
       builder: (context) => dialog,
     );
   }

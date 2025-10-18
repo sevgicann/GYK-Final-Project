@@ -41,6 +41,7 @@ class CustomCard extends StatelessWidget {
       return InkWell(
         onTap: onTap,
         borderRadius: borderRadius ?? BorderRadius.circular(AppTheme.borderRadiusLarge),
+        splashFactory: NoSplash.splashFactory,
         child: card,
       );
     }

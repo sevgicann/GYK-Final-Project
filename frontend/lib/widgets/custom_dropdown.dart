@@ -217,6 +217,7 @@ class _CustomSearchableDropdownState<T> extends State<CustomSearchableDropdown<T
           _isExpanded = !_isExpanded;
         });
       },
+      splashFactory: NoSplash.splashFactory,
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(
@@ -271,6 +272,7 @@ class _CustomSearchableDropdownState<T> extends State<CustomSearchableDropdown<T
                       _isExpanded = false;
                     });
                   },
+                  splashFactory: NoSplash.splashFactory,
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppTheme.paddingMedium,
