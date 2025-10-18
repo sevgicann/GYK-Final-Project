@@ -225,4 +225,77 @@ class RecommendationService {
       throw Exception('Öneri kaydedilirken hata oluştu: $e');
     }
   }
+
+  /// Get ML-based product recommendations from environment conditions
+  Future<Map<String, dynamic>> getMLProductRecommendations({
+    required String region,
+    String? soilType,
+    String? fertilizer,
+    String? irrigation,
+    String? sunlight,
+    String? ph,
+    String? nitrogen,
+    String? phosphorus,
+    String? potassium,
+    String? humidity,
+    String? temperature,
+    String? rainfall,
+    String? city,
+  }) async {
+    try {
+      print('🤖 Getting ML-based product recommendations...');
+      print('🌱 Environment data - Region: $region, Soil: $soilType');
+      
+      // Prepare ML request body with Turkish data (backend will translate)
+      final Map<String, dynamic> mlRequestBody = {
+        'region': region,
+        'language': 'tr', // Turkish response
+        'model_type': 'xgboost', // Use XGBoost model (working model)
+      };
+      
+      // Add required parameters with defaults if not provided (keep Turkish)
+      mlRequestBody['soil_type'] = soilType ?? 'Tınlı Toprak';
+      mlRequestBody['fertilizer_type'] = fertilizer ?? 'Organik Gübre';
+      mlRequestBody['irrigation_method'] = irrigation ?? 'Damla Sulama';
+      mlRequestBody['weather_condition'] = sunlight ?? 'Güneşli';
+      if (ph != null && ph.isNotEmpty) {
+        mlRequestBody['soil_ph'] = double.tryParse(ph) ?? 6.5;
+      }
+      if (nitrogen != null && nitrogen.isNotEmpty) {
+        mlRequestBody['nitrogen'] = double.tryParse(nitrogen) ?? 120.0;
+      }
+      if (phosphorus != null && phosphorus.isNotEmpty) {
+        mlRequestBody['phosphorus'] = double.tryParse(phosphorus) ?? 60.0;
+      }
+      if (potassium != null && potassium.isNotEmpty) {
+        mlRequestBody['potassium'] = double.tryParse(potassium) ?? 225.0;
+      }
+      if (humidity != null && humidity.isNotEmpty) {
+        mlRequestBody['moisture'] = double.tryParse(humidity) ?? 26.0;
+      }
+      if (temperature != null && temperature.isNotEmpty) {
+        mlRequestBody['temperature_celsius'] = double.tryParse(temperature) ?? 23.0;
+      }
+      if (rainfall != null && rainfall.isNotEmpty) {
+        mlRequestBody['rainfall_mm'] = double.tryParse(rainfall) ?? 850.0;
+      }
+      
+      print('📊 ML Request body: $mlRequestBody');
+      
+      // Call ML endpoint
+      final response = await _apiService.post(
+        'http://localhost:5000/api/ml/predict-crop',
+        body: mlRequestBody,
+        requireAuth: false, // ML endpoint doesn't require auth
+      );
+
+      print('✅ ML recommendations received successfully');
+      print('🎯 ML Response: $response');
+      
+      return response;
+    } catch (e) {
+      print('❌ Error getting ML recommendations: $e');
+      throw Exception('ML tabanlı ürün önerileri alınırken hata oluştu: $e');
+    }
+  }
 }

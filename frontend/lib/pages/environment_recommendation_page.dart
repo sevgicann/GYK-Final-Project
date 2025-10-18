@@ -44,6 +44,7 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
   String? _selectedSunlight;
   String? _selectedCity;
   List<Product> _recommendedProducts = [];
+  List<double> _mlConfidenceScores = [];
   bool _isLoading = false;
   bool _isGpsSelected = false;
   bool _isManualSelected = false;
@@ -131,63 +132,141 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
       });
 
       try {
-        // Backend'e temel bilgi gönder
-        final response = await _recommendationService.generateRecommendation(
-          soilType: _selectedSoilType ?? 'Tınlı Toprak',
-          climate: _selectedRegion ?? 'İç Anadolu',
+        // Kullanıcının girdiği tüm değerleri logla
+        print('📊 Kullanıcı Girişleri:');
+        print('  - Bölge: ${_selectedRegion ?? "Seçilmedi"}');
+        print('  - Toprak Tipi: ${_selectedSoilType ?? "Seçilmedi"}');
+        print('  - Gübre: ${_selectedFertilizer ?? "Seçilmedi"}');
+        print('  - Sulama: ${_selectedIrrigation ?? "Seçilmedi"}');
+        print('  - Güneş Işığı: ${_selectedSunlight ?? "Seçilmedi"}');
+        print('  - Şehir: ${_selectedCity ?? "Seçilmedi"}');
+        print('  - pH: ${_phController.text.isNotEmpty ? _phController.text : "Ortalama (6.5)"}');
+        print('  - Azot: ${_nitrogenController.text.isNotEmpty ? _nitrogenController.text : "Ortalama (120)"}');
+        print('  - Fosfor: ${_phosphorusController.text.isNotEmpty ? _phosphorusController.text : "Ortalama (60)"}');
+        print('  - Potasyum: ${_potassiumController.text.isNotEmpty ? _potassiumController.text : "Ortalama (225)"}');
+        print('  - Nem: ${_humidityController.text.isNotEmpty ? _humidityController.text : "Ortalama (26)"}');
+        print('  - Sıcaklık: ${_temperatureController.text.isNotEmpty ? _temperatureController.text : "Ortalama (23)"}');
+        print('  - Yağış: ${_rainfallController.text.isNotEmpty ? _rainfallController.text : "Ortalama (850)"}');
+        
+        // ML modelinden ürün önerileri al
+        final mlResponse = await _recommendationService.getMLProductRecommendations(
           region: _selectedRegion ?? 'İç Anadolu',
-          preferences: {
-            'ph': _phController.text.isNotEmpty ? _phController.text : '6.5',
-            'nitrogen': _nitrogenController.text.isNotEmpty ? _nitrogenController.text : '120',
-            'phosphorus': _phosphorusController.text.isNotEmpty ? _phosphorusController.text : '60',
-            'potassium': _potassiumController.text.isNotEmpty ? _potassiumController.text : '225',
-            'humidity': _humidityController.text.isNotEmpty ? _humidityController.text : '26',
-            'temperature': _temperatureController.text.isNotEmpty ? _temperatureController.text : '23',
-            'rainfall': _rainfallController.text.isNotEmpty ? _rainfallController.text : '850',
-            'selectedRegion': _selectedRegion,
-            'selectedSoilType': _selectedSoilType,
-            'selectedFertilizer': _selectedFertilizer,
-            'selectedIrrigation': _selectedIrrigation,
-            'selectedSunlight': _selectedSunlight,
-            'selectedCity': _selectedCity,
-          },
+          soilType: _selectedSoilType,
+          fertilizer: _selectedFertilizer,
+          irrigation: _selectedIrrigation,
+          sunlight: _selectedSunlight,
+          ph: _phController.text.isNotEmpty ? _phController.text : '6.5',
+          nitrogen: _nitrogenController.text.isNotEmpty ? _nitrogenController.text : '120',
+          phosphorus: _phosphorusController.text.isNotEmpty ? _phosphorusController.text : '60',
+          potassium: _potassiumController.text.isNotEmpty ? _potassiumController.text : '225',
+          humidity: _humidityController.text.isNotEmpty ? _humidityController.text : '26',
+          temperature: _temperatureController.text.isNotEmpty ? _temperatureController.text : '23',
+          rainfall: _rainfallController.text.isNotEmpty ? _rainfallController.text : '850',
+          city: _selectedCity,
         );
 
-        // Backend'den gelen öneri verilerini işle
-        if (response['success'] == true) {
-          // Sabit ürünler: Domates, Mısır, Pirinç (backend'den gelen veri ile değiştirilebilir)
-          final fixedProducts = _productService.getAllProducts()
-              .where((product) => ['Domates', 'Mısır', 'Pirinç'].contains(product.name))
+        print('🤖 ML Response received: $mlResponse');
+
+        // ML'den gelen önerileri işle
+        if (mlResponse['success'] == true && mlResponse['data'] != null) {
+          final mlData = mlResponse['data'];
+          final top3Predictions = mlData['top_3_predictions'] as List<dynamic>?;
+          final predictedCrop = mlData['predicted_crop'] as String?;
+          final confidence = mlData['confidence'] as double?;
+          final modelUsed = mlData['model_used'] as String?;
+          
+          print('🎯 ML Tahmin Sonuçları:');
+          print('  - Ana Tahmin: ${predictedCrop ?? "Bilinmiyor"}');
+          print('  - Güven Skoru: ${confidence != null ? (confidence * 100).toStringAsFixed(1) + "%" : "Bilinmiyor"}');
+          print('  - Kullanılan Model: ${modelUsed ?? "Bilinmiyor"}');
+          print('  - Top 3 Öneri:');
+          
+          if (top3Predictions != null && top3Predictions.isNotEmpty) {
+            // ML'den gelen ürün isimlerini Product objelerine çevir
+            final mlRecommendedProducts = <Product>[];
+            final mlConfidenceScores = <double>[];
+            
+            for (int i = 0; i < top3Predictions.length; i++) {
+              var prediction = top3Predictions[i];
+              if (prediction is List && prediction.length >= 2) {
+                final cropName = prediction[0] as String;
+                final confidence = prediction[1] as double;
+                
+                print('    ${i + 1}. ${cropName}: ${(confidence * 100).toStringAsFixed(1)}%');
+                
+                // Türkçe ürün isimlerini İngilizce'ye çevir
+                String turkishCropName = _translateCropNameToTurkish(cropName);
+                
+                // Ürün listesinde bu isimle eşleşen ürünü bul
+                final matchingProducts = _productService.getAllProducts()
+                    .where((product) => product.name.toLowerCase().contains(turkishCropName.toLowerCase()) ||
+                                       turkishCropName.toLowerCase().contains(product.name.toLowerCase()))
               .toList();
+                
+                if (matchingProducts.isNotEmpty) {
+                  mlRecommendedProducts.add(matchingProducts.first);
+                  mlConfidenceScores.add(confidence);
+                } else {
+                  // Eğer tam eşleşme yoksa, genel bir ürün oluştur
+                  mlRecommendedProducts.add(Product(
+                    id: cropName,
+                    name: turkishCropName,
+                    category: 'ML Önerisi',
+                    description: 'ML modeli tarafından önerilen ürün (${(confidence * 100).toStringAsFixed(1)}% güven)',
+                    requirements: ProductRequirements(
+                      ph: '6.0-7.0',
+                      nitrogen: '100-150',
+                      phosphorus: '50-80',
+                      potassium: '200-300',
+                      humidity: '60-80',
+                      temperature: '20-30',
+                      rainfall: '500-1000',
+                      notes: 'ML modeli tarafından önerilen genel koşullar',
+                    ),
+                  ));
+                  mlConfidenceScores.add(confidence);
+                }
+              }
+            }
 
           if (mounted) {
             setState(() {
-              _recommendedProducts = fixedProducts;
+                _recommendedProducts = mlRecommendedProducts;
+                _mlConfidenceScores = mlConfidenceScores;
             });
             _showProductRecommendationsBottomSheet();
             
             // Ortam verilerini kaydet
             await _saveEnvironmentDataToMyEnvironments();
             
-            // Başarı mesajını göster
-            if (_scaffoldMessenger != null) {
-              _scaffoldMessenger!.showSnackBar(
-                SnackBar(
-                  content: Text(response['message'] ?? 'Öneri başarıyla oluşturuldu'),
-                  backgroundColor: Colors.green,
-                ),
-              );
-            }
+              // Başarı mesaj sonuçları göster
+              if (_scaffoldMessenger != null) {
+                _scaffoldMessenger!.showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'ML modeli başarıyla çalıştı! ${mlRecommendedProducts.length} ürün önerisi alındı (${modelUsed ?? "XGBoost"} modeli)'
+                    ),
+                    backgroundColor: Colors.green,
+                    duration: const Duration(seconds: 4),
+                  ),
+                );
+              }
           }
         } else {
-          throw Exception(response['message'] ?? 'Öneri oluşturulamadı');
+            throw Exception('ML modelinden geçerli öneri alınamadı');
+          }
+        } else {
+          throw Exception(mlResponse['message'] ?? 'ML önerisi alınamadı');
         }
       } catch (e) {
+        print('❌ ML recommendation error: $e');
+        
         if (mounted && _scaffoldMessenger != null) {
           _scaffoldMessenger!.showSnackBar(
             SnackBar(
-              content: Text('Ürün önerisi alınırken hata oluştu: $e'),
+              content: Text('ML modeli bağlantısında hata oluştu: $e'),
               backgroundColor: AppTheme.errorColor,
+              duration: const Duration(seconds: 5),
             ),
           );
         }
@@ -1065,6 +1144,10 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
             padding: const EdgeInsets.all(AppTheme.paddingLarge),
             child: Row(
               children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
                 const Text(
                   'En Uygun 3 Ürün',
                   style: TextStyle(
@@ -1073,7 +1156,17 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
                     color: AppTheme.textPrimaryColor,
                   ),
                 ),
-                const Spacer(),
+                      if (_mlConfidenceScores.isNotEmpty)
+                        Text(
+                          'ML Modeli ile Gerçek Tahmin Sonuçları (${_mlConfidenceScores.length} öneri)',
+                          style: const TextStyle(
+                            fontSize: AppTheme.fontSizeSmall,
+                            color: AppTheme.textSecondaryColor,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
                   icon: const Icon(Icons.close),
@@ -1123,18 +1216,23 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
           itemCount: _recommendedProducts.length,
           itemBuilder: (context, index) {
             final product = _recommendedProducts[index];
+            final confidenceScore = index < _mlConfidenceScores.length 
+                ? _mlConfidenceScores[index] 
+                : 0.0;
+            
             return Padding(
-              padding: const EdgeInsets.only(bottom: AppTheme.paddingSmall), // Küçültüldü
+              padding: const EdgeInsets.only(bottom: AppTheme.paddingSmall),
               child: CustomCard(
                 child: Padding(
-                  padding: const EdgeInsets.all(AppTheme.paddingSmall), // Padding eklendi
+                  padding: const EdgeInsets.all(AppTheme.paddingSmall),
                   child: Row(
                     children: [
+                      // Sıralama numarası
                       Container(
-                        width: 30, // Küçültüldü
-                        height: 30, // Küçültüldü
-                        decoration: const BoxDecoration(
-                          color: AppTheme.primaryColor,
+                        width: 30,
+                        height: 30,
+                        decoration: BoxDecoration(
+                          color: _getRankingColor(index),
                           shape: BoxShape.circle,
                         ),
                         child: Center(
@@ -1142,29 +1240,33 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
                             '${index + 1}',
                             style: const TextStyle(
                               color: AppTheme.surfaceColor,
-                              fontSize: AppTheme.fontSizeMedium, // Küçültüldü
+                              fontSize: AppTheme.fontSizeMedium,
                               fontWeight: AppTheme.fontWeightBold,
                             ),
                           ),
                         ),
                       ),
-                      const SizedBox(width: AppTheme.paddingSmall), // Küçültüldü
+                      const SizedBox(width: AppTheme.paddingSmall),
+                      
+                      // Ürün resmi
                       ClipRRect(
                         borderRadius: BorderRadius.circular(AppTheme.borderRadius),
                         child: Image.network(
                           _imageService.getProductImage(product.name),
-                          width: 50, // Küçültüldü
-                          height: 50, // Küçültüldü
+                          width: 50,
+                          height: 50,
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) => Container(
-                            width: 50, // Küçültüldü
-                            height: 50, // Küçültüldü
+                            width: 50,
+                            height: 50,
                             color: AppTheme.primaryLightColor.withOpacity(0.2),
                             child: const Icon(Icons.broken_image, color: AppTheme.textSecondaryColor),
                           ),
                         ),
                       ),
-                      const SizedBox(width: AppTheme.paddingSmall), // Küçültüldü
+                      const SizedBox(width: AppTheme.paddingSmall),
+                      
+                      // Ürün bilgileri
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1172,50 +1274,71 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
                           Text(
                             product.name,
                             style: const TextStyle(
-                              fontSize: AppTheme.fontSizeLarge, // Küçültüldü
+                                fontSize: AppTheme.fontSizeLarge,
                               fontWeight: AppTheme.fontWeightBold,
                               color: AppTheme.textPrimaryColor,
                             ),
                           ),
-                          const SizedBox(height: 4), // Küçültüldü
+                            const SizedBox(height: 4),
+                            
+                            // Güven skoru göster
+                            if (_mlConfidenceScores.isNotEmpty)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: _getConfidenceColor(confidenceScore),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  '${(confidenceScore * 100).toStringAsFixed(1)}% güven',
+                                  style: const TextStyle(
+                                    color: AppTheme.surfaceColor,
+                                    fontSize: AppTheme.fontSizeSmall,
+                                    fontWeight: AppTheme.fontWeightMedium,
+                                  ),
+                                ),
+                              )
+                            else
                           Text(
                             product.category,
                             style: AppTheme.bodyStyle.copyWith(
                               color: AppTheme.textSecondaryColor,
-                              fontSize: AppTheme.fontSizeSmall, // Küçültüldü
+                                  fontSize: AppTheme.fontSizeSmall,
                             ),
                           ),
-                          const SizedBox(height: 4), // Küçültüldü
+                            
+                            const SizedBox(height: 4),
                           Text(
                             product.description,
                             style: AppTheme.bodyStyle.copyWith(
-                              fontSize: AppTheme.fontSizeSmall, // Küçültüldü
+                                fontSize: AppTheme.fontSizeSmall,
                             ),
-                            maxLines: 1, // Tek satır
+                              maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(width: AppTheme.paddingSmall), // Küçültüldü
-                    // Add button
+                      const SizedBox(width: AppTheme.paddingSmall),
+                      
+                      // Ekle butonu
                     Container(
-                      width: 32, // Küçültüldü
-                      height: 32, // Küçültüldü
+                        width: 32,
+                        height: 32,
                       decoration: BoxDecoration(
                         color: Colors.transparent,
                         border: Border.all(
                           color: AppTheme.primaryColor,
                           width: 2,
                         ),
-                        borderRadius: BorderRadius.circular(6), // Küçültüldü
+                          borderRadius: BorderRadius.circular(6),
                       ),
                       child: IconButton(
                         onPressed: () => _addProductToCart(product),
                         icon: const Icon(
                           Icons.add,
                           color: AppTheme.primaryColor,
-                          size: 16, // Küçültüldü
+                            size: 16,
                         ),
                         padding: EdgeInsets.zero,
                         splashColor: Colors.transparent,
@@ -1294,6 +1417,169 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
     } catch (e) {
       print('Error saving environment data to My Environments: $e');
       // Hata durumunda kullanıcıya bildirim gösterme, sadece logla
+    }
+  }
+
+  /// ML modelinden gelen İngilizce ürün isimlerini Türkçe'ye çevir
+  String _translateCropNameToTurkish(String englishCropName) {
+    final cropTranslations = {
+      'corn': 'Mısır',
+      'wheat': 'Buğday',
+      'rice': 'Pirinç',
+      'tomato': 'Domates',
+      'potato': 'Patates',
+      'soybean': 'Soya',
+      'cotton': 'Pamuk',
+      'barley': 'Arpa',
+      'sunflower': 'Ayçiçeği',
+      'sugar beet': 'Şeker Pancarı',
+      'sugarcane': 'Şeker Kamışı',
+      'carrot': 'Havuç',
+      'onion': 'Soğan',
+      'cabbage': 'Lahana',
+      'lettuce': 'Marul',
+      'spinach': 'Ispanak',
+      'pepper': 'Biber',
+      'cucumber': 'Salatalık',
+      'eggplant': 'Patlıcan',
+      'peas': 'Bezelye',
+      'beans': 'Fasulye',
+      'lentils': 'Mercimek',
+      'chickpeas': 'Nohut',
+      'apple': 'Elma',
+      'pear': 'Armut',
+      'cherry': 'Kiraz',
+      'grape': 'Üzüm',
+      'olive': 'Zeytin',
+      'almond': 'Badem',
+      'walnut': 'Ceviz',
+      'hazelnut': 'Fındık',
+      // Backend'den gelen Türkçe isimler için
+      'misir': 'Mısır',
+      'bugday': 'Buğday',
+      'pirinç': 'Pirinç',
+      'domates': 'Domates',
+      'patates': 'Patates',
+      'soya': 'Soya',
+      'pamuk': 'Pamuk',
+      'arpa': 'Arpa',
+      'ayçiçeği': 'Ayçiçeği',
+      'şeker pancarı': 'Şeker Pancarı',
+      'şeker kamışı': 'Şeker Kamışı',
+      'havuç': 'Havuç',
+      'soğan': 'Soğan',
+      'lahana': 'Lahana',
+      'marul': 'Marul',
+      'ıspanak': 'Ispanak',
+      'biber': 'Biber',
+      'salatalık': 'Salatalık',
+      'patlıcan': 'Patlıcan',
+      'bezelye': 'Bezelye',
+      'fasulye': 'Fasulye',
+      'mercimek': 'Mercimek',
+      'nohut': 'Nohut',
+      'elma': 'Elma',
+      'armut': 'Armut',
+      'kiraz': 'Kiraz',
+      'üzüm': 'Üzüm',
+      'zeytin': 'Zeytin',
+      'badem': 'Badem',
+      'ceviz': 'Ceviz',
+      'fındık': 'Fındık',
+    };
+    
+    return cropTranslations[englishCropName.toLowerCase()] ?? englishCropName;
+  }
+
+  /// Türkçe bölge isimlerini İngilizce'ye çevir
+  String _translateRegionToEnglish(String turkishRegion) {
+    final regionTranslations = {
+      'İç Anadolu': 'Central Anatolia',
+      'Marmara': 'Marmara',
+      'Ege': 'Aegean',
+      'Akdeniz': 'Mediterranean',
+      'Karadeniz': 'Black Sea',
+      'Doğu Anadolu': 'Eastern Anatolia',
+      'Güneydoğu Anadolu': 'Southeastern Anatolia',
+    };
+    
+    return regionTranslations[turkishRegion] ?? turkishRegion;
+  }
+
+  /// Türkçe toprak tipini İngilizce'ye çevir
+  String _translateSoilTypeToEnglish(String turkishSoilType) {
+    final soilTranslations = {
+      'Killi Toprak': 'Clay',
+      'Kumlu Toprak': 'Sandy',
+      'Tınlı Toprak': 'Loamy',
+      'Siltli Toprak': 'Silty',
+      'Kireçli Toprak': 'Loamy', // Fallback
+      'Asitli Toprak': 'Sandy', // Fallback
+    };
+    
+    return soilTranslations[turkishSoilType] ?? turkishSoilType;
+  }
+
+  /// Türkçe gübre tipini İngilizce'ye çevir
+  String _translateFertilizerToEnglish(String turkishFertilizer) {
+    final fertilizerTranslations = {
+      'Potasyum Nitrat': 'Potassium Nitrate',
+      'Amonyum Sülfat': 'Ammonium Sulphate',
+      'Üre': 'Urea',
+      'Kompost': 'Urea', // Fallback
+      'Organik Gübre': 'Urea', // Fallback
+    };
+    
+    return fertilizerTranslations[turkishFertilizer] ?? turkishFertilizer;
+  }
+
+  /// Türkçe sulama yöntemini İngilizce'ye çevir
+  String _translateIrrigationToEnglish(String turkishIrrigation) {
+    final irrigationTranslations = {
+      'Salma Sulama': 'Flood Irrigation',
+      'Damla Sulama': 'Drip Irrigation',
+      'Yağmurlama': 'Sprinkler Irrigation',
+      'Sprinkler': 'Sprinkler Irrigation',
+      'Mikro Sulama': 'Micro Irrigation',
+    };
+    
+    return irrigationTranslations[turkishIrrigation] ?? turkishIrrigation;
+  }
+
+  /// Türkçe hava durumunu İngilizce'ye çevir
+  String _translateWeatherToEnglish(String turkishWeather) {
+    final weatherTranslations = {
+      'Güneşli': 'sunny',
+      'Kısmi Gölge': 'partially cloudy',
+      'Gölgeli': 'cloudy',
+      'Tam Gölge': 'shady',
+    };
+    
+    return weatherTranslations[turkishWeather] ?? turkishWeather;
+  }
+
+  /// Sıralama pozisyonuna göre renk döndür
+  Color _getRankingColor(int index) {
+    switch (index) {
+      case 0:
+        return Colors.amber; // Altın - 1.
+      case 1:
+        return Colors.grey[600]!; // Gümüş - 2.
+      case 2:
+        return Colors.orange[700]!; // Bronz - 3.
+      default:
+        return AppTheme.primaryColor;
+    }
+  }
+
+  /// Güven skoruna göre renk döndür
+  Color _getConfidenceColor(double confidence) {
+    if (confidence >= 0.8) {
+      return Colors.green; // Yüksek güven
+    } else if (confidence >= 0.6) {
+      return Colors.orange; // Orta güven
+    } else {
+      return Colors.red; // Düşük güven
     }
   }
 }
