@@ -86,15 +86,15 @@ class TurkishCities {
   static List<String> getCitiesByRegion(String region) {
     switch (region) {
       case 'Marmara':
-        return ['İstanbul', 'Bursa', 'Kocaeli', 'Sakarya', 'Tekirdağ', 'Edirne', 'Kırklareli', 'Balıkesir', 'Çanakkale', 'Yalova'];
+        return ['İstanbul', 'Bursa', 'Kocaeli', 'Sakarya', 'Bilecik', 'Tekirdağ', 'Edirne', 'Kırklareli', 'Balıkesir', 'Çanakkale', 'Yalova'];
       case 'Ege':
         return ['İzmir', 'Manisa', 'Aydın', 'Muğla', 'Denizli', 'Uşak', 'Afyonkarahisar', 'Kütahya'];
       case 'Akdeniz':
         return ['Antalya', 'Mersin', 'Adana', 'Hatay', 'Osmaniye', 'Kahramanmaraş', 'Isparta', 'Burdur'];
       case 'İç Anadolu':
-        return ['Ankara', 'Konya', 'Kayseri', 'Sivas', 'Eskişehir', 'Çankırı', 'Çorum', 'Yozgat', 'Nevşehir', 'Kırşehir', 'Aksaray', 'Kırıkkale', 'Karaman'];
+        return ['Ankara', 'Konya', 'Niğde','Kayseri', 'Sivas', 'Eskişehir', 'Çankırı', 'Çorum', 'Yozgat', 'Nevşehir', 'Kırşehir', 'Aksaray', 'Kırıkkale', 'Karaman'];
       case 'Karadeniz':
-        return ['Samsun', 'Trabzon', 'Ordu', 'Giresun', 'Rize', 'Artvin', 'Gümüşhane', 'Bayburt', 'Kastamonu', 'Sinop', 'Çorum', 'Amasya', 'Tokat', 'Zonguldak', 'Bartın', 'Karabük', 'Düzce'];
+        return ['Samsun', 'Trabzon', 'Bolu', 'Ordu', 'Giresun', 'Rize', 'Artvin', 'Gümüşhane', 'Bayburt', 'Kastamonu', 'Sinop', 'Çorum', 'Amasya', 'Tokat', 'Zonguldak', 'Bartın', 'Karabük', 'Düzce'];
       case 'Doğu Anadolu':
         return ['Erzurum', 'Erzincan', 'Ağrı', 'Kars', 'Iğdır', 'Ardahan', 'Van', 'Muş', 'Bitlis', 'Hakkâri', 'Malatya', 'Elazığ', 'Bingöl', 'Tunceli'];
       case 'Güneydoğu Anadolu':

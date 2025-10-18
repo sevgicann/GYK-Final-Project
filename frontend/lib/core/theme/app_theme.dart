@@ -13,6 +13,7 @@ class AppTheme {
   static const Color recommendationTextColor = Color(0xFF1976D2);
   static const Color textPrimaryColor = Color(0xFF2E7D32);
   static const Color textSecondaryColor = Color(0xFF666666);
+  static const Color borderColor = Color(0xFFE0E0E0);
   static const Color errorColor = Color(0xFFE53935);
   static const Color successColor = Color(0xFF4CAF50);
 
@@ -29,6 +30,7 @@ class AppTheme {
   static const double iconSizeSmall = 16.0;
 
   // Font Boyutları
+  static const double fontSizeXSmall = 10.0;
   static const double fontSizeSmall = 12.0;
   static const double fontSizeMedium = 14.0;
   static const double fontSizeLarge = 16.0;

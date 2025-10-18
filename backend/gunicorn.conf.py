@@ -57,3 +57,16 @@ capture_output = True
 
 # Enable auto-reload in development (disabled in production)
 reload = False
+
+# Server hooks
+def post_fork(server, worker):
+    """Called just after a worker has been forked."""
+    server.log.info("Worker spawned (pid: %s)", worker.pid)
+    
+    # Initialize ML service for each worker
+    try:
+        from app import init_ml_service
+        init_ml_service()
+        server.log.info("ML Service initialized for worker (pid: %s)", worker.pid)
+    except Exception as e:
+        server.log.error("Failed to initialize ML Service for worker (pid: %s): %s", worker.pid, str(e))

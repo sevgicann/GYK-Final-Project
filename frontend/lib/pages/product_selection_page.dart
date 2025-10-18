@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import '../core/theme/app_theme.dart';
 import '../core/navigation/app_router.dart';
+import '../core/widgets/app_layout.dart';
 import '../models/product.dart';
 import '../services/product_service.dart';
 import '../services/image_service.dart';
 import '../services/product_selection_service.dart';
+import '../services/location_service.dart';
 import '../data/turkish_cities.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/custom_card.dart';
@@ -21,6 +23,7 @@ class _ProductSelectionPageState extends State<ProductSelectionPage> {
   final ProductService _productService = ProductService();
   final ImageService _imageService = ImageService();
   final ProductSelectionService _productSelectionService = ProductSelectionService();
+  final LocationService _locationService = LocationService();
 
   Product? _selectedProduct;
   String? _selectedCity;
@@ -31,39 +34,23 @@ class _ProductSelectionPageState extends State<ProductSelectionPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimaryColor),
-          onPressed: () => AppRouter.goBack(context),
+    return AppLayout(
+      currentPageIndex: 2, // Environment Recommendation index
+      pageTitle: 'Ürün Seçiminden Ortam Koşulları Önerisi',
+      actions: [
+        // Reverse Butonu
+        IconButton(
+          icon: const Icon(Icons.swap_horiz, color: AppTheme.textPrimaryColor),
+          onPressed: () {
+            AppRouter.navigateTo(context, AppRouter.environmentRecommendation);
+          },
+          tooltip: 'Ortam Koşullarından Ürün Tahmini',
         ),
-        title: const Text(
-          'Ürün Seçiminden Ortam Koşulları Önerisi',
-          style: TextStyle(
-            color: AppTheme.textPrimaryColor,
-            fontWeight: AppTheme.fontWeightBold,
-            fontSize: AppTheme.fontSizeLarge,
-          ),
-        ),
-        centerTitle: true,
-        actions: [
-          // Reverse Butonu
-          IconButton(
-            icon: const Icon(Icons.swap_horiz, color: AppTheme.textPrimaryColor),
-            onPressed: () {
-              AppRouter.navigateTo(context, AppRouter.environmentRecommendation);
-            },
-            tooltip: 'Ortam Koşullarından Ürün Tahmini',
-          ),
-        ],
-      ),
-      body: SafeArea(
+      ],
+      child: SafeArea(
         child: Column(
           children: [
-            // Scrollable Content
+            // Scrollable Content 
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(AppTheme.paddingLarge),
@@ -376,7 +363,7 @@ class _ProductSelectionPageState extends State<ProductSelectionPage> {
     final canGetRecommendation = _selectedProduct != null && _selectedCity != null;
     
     return CustomButton(
-      text: 'Öneri Al',
+      text: 'Önerileri Al',
       icon: Icons.lightbulb_outline,
       onPressed: canGetRecommendation ? _handleGetRecommendation : null,
       isLoading: _isLoading,
@@ -385,44 +372,101 @@ class _ProductSelectionPageState extends State<ProductSelectionPage> {
   }
 
   void _handleGpsLocation() async {
-    // GPS konumu simülasyonu
+    // Get REAL GPS location
     setState(() {
       _isLoading = true;
     });
 
     try {
-      // Simulate GPS location detection
-      await Future.delayed(const Duration(seconds: 2));
+      // Get real GPS location
+      final locationData = await _locationService.getCurrentLocation();
       
       if (mounted) {
-        setState(() {
-          _selectedCity = 'İstanbul'; // Simüle edilmiş GPS konumu
-          _selectedRegion = TurkishCities.getRegionByCity(_selectedCity!);
-          _isGpsSelected = true;
-          _isManualSelected = false;
-          _isLoading = false;
-        });
-        
-        // Send GPS location selection to backend
-        try {
-          await _productSelectionService.selectLocation(
-            locationType: 'gps',
-            city: _selectedCity!,
-            region: _selectedRegion!,
-            latitude: 41.0082, // İstanbul coordinates
-            longitude: 28.9784,
-            climateZone: _selectedRegion!,
+        if (locationData['success'] == true) {
+          setState(() {
+            _selectedCity = locationData['city'];
+            _selectedRegion = locationData['region'];
+            _isGpsSelected = true;
+            _isManualSelected = false;
+            _isLoading = false;
+          });
+          
+          // Show success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                '📍 GPS konumu alındı: $_selectedCity ($_selectedRegion)',
+                style: const TextStyle(color: Colors.white),
+              ),
+              backgroundColor: AppTheme.primaryColor,
+              duration: const Duration(seconds: 3),
+            ),
           );
-        } catch (e) {
-          print('❌ Error sending GPS location to backend: $e');
-          // Don't show error to user, just log it
+          
+          // Send GPS location selection to backend
+          try {
+            await _productSelectionService.selectLocation(
+              locationType: 'gps',
+              city: _selectedCity!,
+              region: _selectedRegion!,
+              latitude: locationData['latitude'],
+              longitude: locationData['longitude'],
+              climateZone: _selectedRegion!,
+            );
+            print('✅ GPS location sent to backend: $_selectedCity, $_selectedRegion');
+          } catch (e) {
+            print('❌ Error sending GPS location to backend: $e');
+            // Don't show error to user, just log it
+          }
+        } else {
+          // GPS failed, show error
+          setState(() {
+            _isLoading = false;
+            _isGpsSelected = false;
+          });
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                locationData['message'] ?? 'GPS konumu alınamadı',
+                style: const TextStyle(color: Colors.white),
+              ),
+              backgroundColor: AppTheme.errorColor,
+              duration: const Duration(seconds: 4),
+              action: SnackBarAction(
+                label: 'Manuel Seç',
+                textColor: Colors.white,
+                onPressed: () {
+                  _showCitySelectionDialog();
+                },
+              ),
+            ),
+          );
         }
       }
     } catch (e) {
       if (mounted) {
         setState(() {
           _isLoading = false;
+          _isGpsSelected = false;
         });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'GPS hatası: $e',
+              style: const TextStyle(color: Colors.white),
+            ),
+            backgroundColor: AppTheme.errorColor,
+            action: SnackBarAction(
+              label: 'Manuel Seç',
+              textColor: Colors.white,
+              onPressed: () {
+                _showCitySelectionDialog();
+              },
+            ),
+          ),
+        );
         print('❌ Error in GPS location: $e');
       }
     }

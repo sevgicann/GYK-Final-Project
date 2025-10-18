@@ -3,6 +3,7 @@ import '../core/theme/app_theme.dart';
 import '../core/navigation/app_router.dart';
 import '../core/widgets/app_button.dart';
 import '../core/widgets/app_card.dart';
+import '../core/widgets/app_layout.dart';
 import '../core/utils/app_extensions.dart';
 
 class HomePage extends StatefulWidget {
@@ -19,23 +20,11 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: const Text(
-          'Terramind - Akıllı Tarım',
-          style: TextStyle(
-            color: AppTheme.textPrimaryColor,
-            fontWeight: AppTheme.fontWeightBold,
-            fontSize: AppTheme.fontSizeXLarge,
-          ),
-        ),
-        centerTitle: true,
-      ),
-      body: SafeArea(
-        child: Padding(
+    return AppLayout(
+      currentPageIndex: 0, // Home page index
+      pageTitle: 'Terramind - Akıllı Tarım',
+      child: SafeArea(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(AppTheme.paddingLarge),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -63,7 +52,7 @@ class _HomePageState extends State<HomePage> {
               // Konum Seçenekleri
               _buildLocationOptions(),
               
-              const Spacer(),
+              const SizedBox(height: AppTheme.paddingXLarge),
             ],
           ),
         ),

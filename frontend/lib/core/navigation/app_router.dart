@@ -1,16 +1,22 @@
 import 'package:flutter/material.dart';
 import '../../pages/register_page.dart';
 import '../../pages/login_page.dart';
+import '../../pages/dashboard_page.dart';
 import '../../pages/home_page.dart';
 import '../../pages/product_selection_page.dart';
 import '../../pages/environment_recommendation_page.dart';
+import '../../pages/my_products_page.dart';
+import '../../pages/my_environments_page.dart';
 
 class AppRouter {
   static const String register = '/register';
   static const String login = '/login';
+  static const String dashboard = '/dashboard';
   static const String home = '/home';
   static const String productSelection = '/product-selection';
   static const String environmentRecommendation = '/environment-recommendation';
+  static const String myProducts = '/my-products';
+  static const String myEnvironments = '/my-environments';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -23,6 +29,12 @@ class AppRouter {
       case login:
         return MaterialPageRoute(
           builder: (_) => const LoginPage(),
+          settings: settings,
+        );
+      
+      case dashboard:
+        return MaterialPageRoute(
+          builder: (_) => const DashboardPage(),
           settings: settings,
         );
       
@@ -41,6 +53,18 @@ class AppRouter {
       case environmentRecommendation:
         return MaterialPageRoute(
           builder: (_) => const EnvironmentRecommendationPage(),
+          settings: settings,
+        );
+      
+      case myProducts:
+        return MaterialPageRoute(
+          builder: (_) => const MyProductsPage(),
+          settings: settings,
+        );
+      
+      case myEnvironments:
+        return MaterialPageRoute(
+          builder: (_) => const MyEnvironmentsPage(),
           settings: settings,
         );
       

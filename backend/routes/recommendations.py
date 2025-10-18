@@ -7,8 +7,46 @@ from models.environment import Environment
 from app import db
 from datetime import datetime
 from utils.logger import log_api_call, get_logger, log_info, log_success
+from utils.i18n import adapt_request, adapt_response, get_field_options, detect_language
 
 recommendations_bp = Blueprint('recommendations', __name__)
+
+# ML Service lazy import to avoid circular dependencies
+def get_ml_service():
+    """Lazy import ML service"""
+    try:
+        from services.ml_service import get_ml_service as _get_service
+        return _get_service()
+    except Exception as e:
+        logger = get_logger('routes.recommendations')
+        logger.error(f"Failed to import ML service: {str(e)}")
+        return None
+
+@recommendations_bp.route('/field-options', methods=['GET'])
+def get_field_options_endpoint():
+    """
+    Get available options for categorical fields
+    Query params: field (crop, region, soil_type, etc.), language (tr/en, default: tr)
+    """
+    try:
+        field_name = request.args.get('field', 'crop')
+        language = request.args.get('language', 'tr')
+        
+        options = get_field_options(field_name, language)
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'field': field_name,
+                'options': options,
+                'language': language
+            }
+        }), 200
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Error getting field options: {str(e)}'
+        }), 500
 
 @recommendations_bp.route('/test-get', methods=['GET'])
 def test_endpoint():
@@ -94,7 +132,7 @@ def save_location_data():
 
 @recommendations_bp.route('/environment-data', methods=['POST'])
 def save_environment_data():
-    """Save environment data from user selection"""
+    """Save environment data from user selection with i18n support"""
     logger = get_logger('routes.recommendations')
     
     try:
@@ -107,48 +145,52 @@ def save_environment_data():
                 'message': 'Request data is required'
             }), 400
         
-        # Detailed logging of environment data
+        # Get target language for response
+        target_lang = data.pop('language', 'tr')
+        
+        # Detect source language and adapt to canonical English
+        source_lang = detect_language(data)
+        canonical_data = adapt_request(data, source_lang)
+        
         logger.info("=" * 80)
         logger.info("🌍 ENVIRONMENT DATA RECEIVED:")
+        logger.info(f"  Source Language: {source_lang}")
+        logger.info(f"  Target Language: {target_lang}")
         logger.info(f"  Timestamp: {datetime.now().isoformat()}")
         logger.info("=" * 80)
         
-        # Extract and log environment information
-        region = (data.get('region') or '').strip()
-        soil_type = (data.get('soil_type') or '').strip()
-        fertilizer = (data.get('fertilizer') or '').strip()
-        irrigation = (data.get('irrigation') or '').strip()
-        sunlight = (data.get('sunlight') or '').strip()
-        
-        logger.info("🌱 ENVIRONMENT INFORMATION:")
-        logger.info(f"  Region: {region}")
-        logger.info(f"  Soil Type: {soil_type}")
-        logger.info(f"  Fertilizer: {fertilizer}")
-        logger.info(f"  Irrigation Method: {irrigation}")
-        logger.info(f"  Sunlight: {sunlight}")
+        # Log canonical (English) data
+        logger.info("🌱 CANONICAL ENVIRONMENT DATA (EN):")
+        logger.info(f"  Region: {canonical_data.get('region')}")
+        logger.info(f"  Soil Type: {canonical_data.get('soil_type')}")
+        logger.info(f"  Fertilizer: {canonical_data.get('fertilizer_type')}")
+        logger.info(f"  Irrigation: {canonical_data.get('irrigation_method')}")
+        logger.info(f"  Weather: {canonical_data.get('weather_condition')}")
         
         logger.info("=" * 80)
-        logger.info("✅ ENVIRONMENT DATA SAVED SUCCESSFULLY")
+        logger.info("✅ ENVIRONMENT DATA PROCESSED")
         logger.info("=" * 80)
+        
+        # Adapt response back to target language
+        response_data = adapt_response(canonical_data, target_lang)
         
         return jsonify({
             'success': True,
-            'message': 'Çevre bilgileri başarıyla kaydedildi',
+            'message': 'Çevre bilgileri başarıyla kaydedildi' if target_lang == 'tr' else 'Environment data saved successfully',
             'data': {
-                'region': region,
-                'soil_type': soil_type,
-                'fertilizer': fertilizer,
-                'irrigation': irrigation,
-                'sunlight': sunlight,
-                'saved_at': datetime.now().isoformat()
+                **response_data,
+                'saved_at': datetime.now().isoformat(),
+                'canonical_format': canonical_data  # For debugging
             }
         }), 200
         
     except Exception as e:
         logger.error(f"Error saving environment data: {str(e)}")
+        # Try to get target_lang if it exists, otherwise default to 'tr'
+        target_lang = data.get('language', 'tr') if 'data' in locals() else 'tr'
         return jsonify({
             'success': False,
-            'message': 'Çevre bilgileri kaydedilirken hata oluştu',
+            'message': 'Çevre bilgileri kaydedilirken hata oluştu' if target_lang == 'tr' else 'Error saving environment data',
             'error': str(e)
         }), 500
 
@@ -877,5 +919,295 @@ def get_recommendation_stats():
         return jsonify({
             'success': False,
             'message': 'Failed to fetch recommendation statistics',
+            'error': str(e)
+        }), 500
+    """
+    Predict best crop for given environmental conditions
+    
+    Request body (Turkish or English):
+    {
+        "region": "Marmara" / "Marmara",
+        "soil_type": "Killi Toprak" / "Clay",
+        "soil_ph": 6.5,
+        "nitrogen": 90,
+        "phosphorus": 42,
+        "potassium": 43,
+        "moisture": 65,
+        "temperature_celsius": 25,
+        "rainfall_mm": 600,
+        "fertilizer_type": "Amonyum Sülfat" / "Ammonium Sulphate",
+        "irrigation_method": "Damla Sulama" / "Drip Irrigation",
+        "weather_condition": "Güneşli" / "sunny",
+        "use_synthetic": true,  // Optional, default: true
+        "language": "tr"  // Optional, for response language
+    }
+    """
+    logger = get_logger('routes.recommendations')
+    
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({
+                'success': False,
+                'message': 'Request data is required'
+            }), 400
+        
+        # Extract preferences
+        target_lang = data.pop('language', 'tr')
+        use_synthetic = data.pop('use_synthetic', True)
+        
+        # Detect source language and adapt to canonical English
+        source_lang = detect_language(data)
+        canonical_data = adapt_request(data, source_lang)
+        
+        logger.info("=" * 80)
+        logger.info("🤖 ML CROP PREDICTION REQUEST:")
+        logger.info(f"  Source Language: {source_lang}")
+        logger.info(f"  Model Type: {'Synthetic (LightGBM)' if use_synthetic else 'XGBoost'}")
+        logger.info("=" * 80)
+        logger.info("🌱 CANONICAL INPUT DATA (EN):")
+        for key, value in canonical_data.items():
+            logger.info(f"  {key}: {value}")
+        logger.info("=" * 80)
+        
+        # Get ML service
+        ml_service = get_ml_service()
+        if not ml_service:
+            return jsonify({
+                'success': False,
+                'message': 'ML service not available'
+            }), 503
+        
+        # Make prediction
+        prediction_result = ml_service.predict_crop(canonical_data, use_synthetic=use_synthetic)
+        
+        if not prediction_result.get('success'):
+            logger.error(f"Prediction failed: {prediction_result.get('error')}")
+            return jsonify(prediction_result), 500
+        
+        # Log result
+        predicted_crop = prediction_result.get('crop')
+        confidence = prediction_result.get('confidence')
+        
+        logger.info("✅ PREDICTION RESULT:")
+        logger.info(f"  Predicted Crop: {predicted_crop}")
+        if confidence:
+            logger.info(f"  Confidence: {confidence:.2%}")
+        logger.info("=" * 80)
+        
+        # Adapt response to target language
+        response_data = adapt_response(prediction_result, target_lang)
+        
+        return jsonify({
+            'success': True,
+            'data': response_data,
+            'metadata': {
+                'model_type': 'synthetic' if use_synthetic else 'xgboost',
+                'language': target_lang
+            }
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Crop prediction error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': 'Crop prediction failed',
+            'error': str(e)
+        }), 500
+
+
+@recommendations_bp.route('/predict-crop-probabilities', methods=['POST'])
+def predict_crop_probabilities():
+    """
+    Get prediction probabilities for all crops
+    Same input format as /predict-crop
+    Returns top 3 crops with probabilities
+    """
+    logger = get_logger('routes.recommendations')
+    
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({
+                'success': False,
+                'message': 'Request data is required'
+            }), 400
+        
+        # Extract preferences
+        target_lang = data.pop('language', 'tr')
+        use_synthetic = data.pop('use_synthetic', True)
+        
+        # Detect source language and adapt to canonical English
+        source_lang = detect_language(data)
+        canonical_data = adapt_request(data, source_lang)
+        
+        logger.info("🤖 ML PROBABILITY PREDICTION REQUEST")
+        
+        # Get ML service
+        ml_service = get_ml_service()
+        if not ml_service:
+            return jsonify({
+                'success': False,
+                'message': 'ML service not available'
+            }), 503
+        
+        # Get probabilities
+        prob_result = ml_service.get_crop_probabilities(canonical_data, use_synthetic=use_synthetic)
+        
+        if not prob_result.get('success'):
+            logger.error(f"Probability prediction failed: {prob_result.get('error')}")
+            return jsonify(prob_result), 500
+        
+        # Log top 3
+        top_3 = prob_result.get('top_3', [])
+        logger.info("✅ TOP 3 PREDICTIONS:")
+        for i, (crop, prob) in enumerate(top_3, 1):
+            logger.info(f"  {i}. {crop}: {prob:.2%}")
+        
+        # Adapt response to target language
+        response_data = adapt_response(prob_result, target_lang)
+        
+        return jsonify({
+            'success': True,
+            'data': response_data,
+            'metadata': {
+                'model_type': 'synthetic' if use_synthetic else 'xgboost',
+                'language': target_lang
+            }
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Probability prediction error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': 'Probability prediction failed',
+            'error': str(e)
+        }), 500
+
+
+@recommendations_bp.route('/optimize-conditions', methods=['POST'])
+def optimize_conditions():
+    """
+    Find optimal environmental conditions for a target crop
+    
+    Request body (Turkish or English):
+    {
+        "crop": "buğday" / "wheat",
+        "region": "Marmara" / "Marmara",
+        "language": "tr"  // Optional
+    }
+    
+    Returns optimal values for all environmental parameters
+    """
+    logger = get_logger('routes.recommendations')
+    
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({
+                'success': False,
+                'message': 'Request data is required'
+            }), 400
+        
+        # Extract parameters
+        target_lang = data.pop('language', 'tr')
+        
+        # Detect source language and adapt
+        source_lang = detect_language(data)
+        canonical_data = adapt_request(data, source_lang)
+        
+        target_crop = canonical_data.get('crop')
+        target_region = canonical_data.get('region')
+        
+        if not target_crop or not target_region:
+            return jsonify({
+                'success': False,
+                'message': 'Both crop and region are required'
+            }), 400
+        
+        logger.info("=" * 80)
+        logger.info("🔍 ML OPTIMIZATION REQUEST:")
+        logger.info(f"  Target Crop: {target_crop}")
+        logger.info(f"  Target Region: {target_region}")
+        logger.info("=" * 80)
+        
+        # Get ML service
+        ml_service = get_ml_service()
+        if not ml_service:
+            return jsonify({
+                'success': False,
+                'message': 'ML service not available'
+            }), 503
+        
+        # Run optimization
+        optimization_result = ml_service.optimize_for_crop(target_crop, target_region)
+        
+        if not optimization_result.get('success'):
+            logger.error(f"Optimization failed: {optimization_result.get('error')}")
+            return jsonify(optimization_result), 500
+        
+        # Log result
+        optimal_conditions = optimization_result.get('optimal_conditions', {})
+        probability = optimization_result.get('probability', 0)
+        
+        logger.info("✅ OPTIMAL CONDITIONS FOUND:")
+        logger.info(f"  Success Probability: {probability}%")
+        logger.info("  Recommended Parameters:")
+        for param, value in optimal_conditions.items():
+            logger.info(f"    {param}: {value}")
+        logger.info("=" * 80)
+        
+        # Adapt response to target language
+        response_data = adapt_response(optimization_result, target_lang)
+        
+        return jsonify({
+            'success': True,
+            'data': response_data,
+            'metadata': {
+                'language': target_lang
+            }
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Optimization error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': 'Optimization failed',
+            'error': str(e)
+        }), 500
+
+
+@recommendations_bp.route('/ml-health', methods=['GET'])
+def ml_health_check():
+    """Check ML service health and available models"""
+    logger = get_logger('routes.recommendations')
+    
+    try:
+        ml_service = get_ml_service()
+        
+        if not ml_service:
+            return jsonify({
+                'success': False,
+                'status': 'unavailable',
+                'message': 'ML service not initialized'
+            }), 503
+        
+        health_status = ml_service.health_check()
+        
+        logger.info(f"ML Service Health Check: {health_status}")
+        
+        return jsonify({
+            'success': True,
+            'data': health_status
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"ML health check error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'status': 'error',
             'error': str(e)
         }), 500

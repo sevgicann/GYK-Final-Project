@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/theme/app_theme.dart';
 import '../core/validation/validators.dart';
 import '../core/navigation/app_router.dart';
+import '../core/widgets/app_layout.dart';
 import '../widgets/custom_text_field.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/custom_card.dart';
@@ -11,6 +12,9 @@ import '../services/recommendation_service.dart';
 import '../services/product_service.dart';
 import '../services/region_service.dart';
 import '../services/image_service.dart';
+import '../services/location_service.dart';
+import '../services/my_products_service.dart';
+import '../services/my_environments_service.dart';
 import '../models/product.dart';
 import '../data/turkish_cities.dart';
 
@@ -48,6 +52,9 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
   final RegionService _regionService = RegionService();
   final ImageService _imageService = ImageService();
   final ProductService _productService = ProductService();
+  final LocationService _locationService = LocationService();
+  final MyProductsService _myProductsService = MyProductsService();
+  final MyEnvironmentsService _myEnvironmentsService = MyEnvironmentsService();
   
   // ScaffoldMessenger referansını kaydet
   ScaffoldMessengerState? _scaffoldMessenger;
@@ -157,6 +164,9 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
             });
             _showProductRecommendationsBottomSheet();
             
+            // Ortam verilerini kaydet
+            await _saveEnvironmentDataToMyEnvironments();
+            
             // Başarı mesajını göster
             if (_scaffoldMessenger != null) {
               _scaffoldMessenger!.showSnackBar(
@@ -191,36 +201,20 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimaryColor),
-          onPressed: () => AppRouter.goBack(context),
+    return AppLayout(
+      currentPageIndex: 1, // Product Recommendation index
+      pageTitle: 'Ortam Koşullarından Ürün Tahmini',
+      actions: [
+        // Reverse Butonu
+        IconButton(
+          icon: const Icon(Icons.swap_horiz, color: AppTheme.textPrimaryColor),
+          onPressed: () {
+            AppRouter.navigateTo(context, AppRouter.productSelection);
+          },
+          tooltip: 'Ürün Seçiminden Ortam Koşulları Önerisi',
         ),
-        title: const Text(
-          'Ortam Koşullarından Ürün Tahmini',
-          style: TextStyle(
-            color: AppTheme.textPrimaryColor,
-            fontWeight: AppTheme.fontWeightBold,
-            fontSize: AppTheme.fontSizeLarge,
-          ),
-        ),
-        centerTitle: true,
-        actions: [
-          // Reverse Butonu
-          IconButton(
-            icon: const Icon(Icons.swap_horiz, color: AppTheme.textPrimaryColor),
-            onPressed: () {
-              AppRouter.navigateTo(context, AppRouter.productSelection);
-            },
-            tooltip: 'Ürün Seçiminden Ortam Koşulları Önerisi',
-          ),
-        ],
-      ),
-      body: SafeArea(
+      ],
+      child: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(AppTheme.paddingLarge),
           child: Form(
@@ -823,55 +817,102 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
   }
 
   void _handleGpsLocation() async {
-    // GPS konumu alma simülasyonu
+    // Get REAL GPS location
     if (_scaffoldMessenger != null) {
       _scaffoldMessenger!.showSnackBar(
         const SnackBar(
-          content: Text('GPS konumunuz alınıyor...'),
+          content: Text('📍 GPS konumunuz alınıyor...'),
           backgroundColor: AppTheme.primaryColor,
         ),
       );
     }
     
-    // Simüle edilmiş GPS konumu
-    Future.delayed(const Duration(seconds: 2), () async {
+    // Get real GPS location
+    try {
+      final locationData = await _locationService.getCurrentLocation();
+      
       if (mounted) {
-        setState(() {
-          _selectedCity = 'İstanbul'; // Product selection page ile aynı
-          _selectedRegion = TurkishCities.getRegionByCity(_selectedCity!); // Doğru bölge eşleştirmesi
-        });
-        
-        // Backend'e konum bilgilerini gönder
-        try {
-          await _recommendationService.saveLocationData(
-            locationType: 'gps',
-            city: _selectedCity!,
-            region: _selectedRegion!,
-            latitude: 41.0082, // İstanbul koordinatları
-            longitude: 28.9784,
-          );
+        if (locationData['success'] == true) {
+          setState(() {
+            _selectedCity = locationData['city'];
+            _selectedRegion = locationData['region'];
+            _isGpsSelected = true;
+            _isManualSelected = false;
+          });
           
-          if (mounted && _scaffoldMessenger != null) {
-            _scaffoldMessenger!.showSnackBar(
-              SnackBar(
-                content: Text('GPS konumu başarıyla alındı ve kaydedildi: $_selectedCity'),
-                backgroundColor: AppTheme.primaryColor,
-              ),
+          // Backend'e konum bilgilerini gönder
+          try {
+            await _recommendationService.saveLocationData(
+              locationType: 'gps',
+              city: _selectedCity!,
+              region: _selectedRegion!,
+              latitude: locationData['latitude'],
+              longitude: locationData['longitude'],
             );
+            
+            if (mounted && _scaffoldMessenger != null) {
+              _scaffoldMessenger!.showSnackBar(
+                SnackBar(
+                  content: Text(
+                    '✅ GPS konumu alındı: $_selectedCity ($_selectedRegion)',
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                  backgroundColor: AppTheme.primaryColor,
+                  duration: const Duration(seconds: 3),
+                ),
+              );
+            }
+          } catch (e) {
+            print('❌ Error saving GPS location: $e');
+            if (mounted && _scaffoldMessenger != null) {
+              _scaffoldMessenger!.showSnackBar(
+                SnackBar(
+                  content: Text('⚠️ GPS konumu alındı ancak kaydedilemedi: $e'),
+                  backgroundColor: AppTheme.errorColor,
+                ),
+              );
+            }
           }
-        } catch (e) {
-          print('❌ Error saving GPS location: $e');
+        } else {
+          // GPS failed
           if (mounted && _scaffoldMessenger != null) {
             _scaffoldMessenger!.showSnackBar(
               SnackBar(
-                content: Text('GPS konumu alındı ancak kaydedilemedi: $e'),
+                content: Text(
+                  locationData['message'] ?? 'GPS konumu alınamadı',
+                  style: const TextStyle(color: Colors.white),
+                ),
                 backgroundColor: AppTheme.errorColor,
+                duration: const Duration(seconds: 4),
+                action: SnackBarAction(
+                  label: 'Manuel Seç',
+                  textColor: Colors.white,
+                  onPressed: () {
+                    setState(() {
+                      _isManualSelected = true;
+                      _isGpsSelected = false;
+                    });
+                  },
+                ),
               ),
             );
           }
         }
       }
-    });
+    } catch (e) {
+      print('❌ Error getting GPS location: $e');
+      if (mounted && _scaffoldMessenger != null) {
+        _scaffoldMessenger!.showSnackBar(
+          SnackBar(
+            content: Text(
+              'GPS hatası: $e',
+              style: const TextStyle(color: Colors.white),
+            ),
+            backgroundColor: AppTheme.errorColor,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _saveEnvironmentData() async {
@@ -1139,6 +1180,25 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
                         ],
                       ),
                     ),
+                    const SizedBox(width: AppTheme.paddingMedium),
+                    // Add button
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryColor,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: IconButton(
+                        onPressed: () => _addProductToCart(product),
+                        icon: const Icon(
+                          Icons.add,
+                          color: AppTheme.surfaceColor,
+                          size: 20,
+                        ),
+                        padding: EdgeInsets.zero,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -1147,5 +1207,69 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
         ),
       ],
     );
+  }
+
+  void _addProductToCart(Product product) async {
+    try {
+      // Save product to My Products
+      await _myProductsService.saveProduct(product);
+      
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '${product.name} ürünlerime eklendi',
+            style: const TextStyle(color: Colors.white),
+          ),
+          backgroundColor: AppTheme.primaryColor,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      
+      print('Added ${product.name} to My Products');
+    } catch (e) {
+      // Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Ürün eklenirken hata oluştu: $e',
+            style: const TextStyle(color: Colors.white),
+          ),
+          backgroundColor: AppTheme.errorColor,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+      
+      print('Error adding product to My Products: $e');
+    }
+  }
+
+  Future<void> _saveEnvironmentDataToMyEnvironments() async {
+    try {
+      // Ortam verilerini hazırla
+      final environmentData = {
+        'ph': _phController.text.isNotEmpty ? _phController.text : '6.5',
+        'nitrogen': _nitrogenController.text.isNotEmpty ? _nitrogenController.text : '120',
+        'phosphorus': _phosphorusController.text.isNotEmpty ? _phosphorusController.text : '60',
+        'potassium': _potassiumController.text.isNotEmpty ? _potassiumController.text : '225',
+        'humidity': _humidityController.text.isNotEmpty ? _humidityController.text : '26',
+        'temperature': _temperatureController.text.isNotEmpty ? _temperatureController.text : '23',
+        'rainfall': _rainfallController.text.isNotEmpty ? _rainfallController.text : '850',
+        'region': _selectedRegion ?? 'İç Anadolu',
+        'soilType': _selectedSoilType ?? 'Tınlı Toprak',
+        'fertilizer': _selectedFertilizer ?? 'Organik',
+        'irrigation': _selectedIrrigation ?? 'Damla Sulama',
+        'sunlight': _selectedSunlight ?? 'Tam Güneş',
+        'city': _selectedCity ?? 'Ankara',
+      };
+
+      // Ortam verilerini kaydet
+      await _myEnvironmentsService.saveEnvironment(environmentData);
+      
+      print('Environment data saved to My Environments successfully');
+    } catch (e) {
+      print('Error saving environment data to My Environments: $e');
+      // Hata durumunda kullanıcıya bildirim gösterme, sadece logla
+    }
   }
 }

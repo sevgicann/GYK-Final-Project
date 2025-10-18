@@ -5,6 +5,8 @@ import '../core/navigation/app_router.dart';
 import '../core/widgets/app_button.dart';
 import '../core/utils/app_extensions.dart';
 import '../services/auth_service.dart';
+import '../core/language/language_service.dart';
+import '../core/language/translations.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -26,6 +28,7 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _obscureConfirmPassword = true;
   
   final _authService = AuthService();
+  final _languageService = LanguageService();
 
   final List<String> _languages = [
     'Türkçe',
@@ -35,12 +38,33 @@ class _RegisterPageState extends State<RegisterPage> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _languageService.initialize().then((_) {
+      _languageService.addListener(_onLanguageChanged);
+      // Load current language and set the dropdown value
+      setState(() {
+        _selectedLanguage = _languageService.currentLanguageDisplayName;
+      });
+    });
+  }
+
+  @override
   void dispose() {
+    _languageService.removeListener(_onLanguageChanged);
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
+  }
+
+  void _onLanguageChanged() {
+    if (mounted) {
+      setState(() {
+        // Trigger rebuild when language changes
+      });
+    }
   }
 
   @override
@@ -92,13 +116,13 @@ class _RegisterPageState extends State<RegisterPage> {
   Widget _buildLanguageSelector() {
     return DropdownButtonFormField<String>(
       initialValue: _selectedLanguage,
-      decoration: const InputDecoration(
-        labelText: 'Dil Seçin',
-        prefixIcon: Icon(
+      decoration: InputDecoration(
+        labelText: Translations.get('select_language', _languageService.currentLanguage),
+        prefixIcon: const Icon(
           Icons.language,
           color: AppTheme.primaryColor,
         ),
-        border: OutlineInputBorder(),
+        border: const OutlineInputBorder(),
         filled: true,
         fillColor: AppTheme.surfaceColor,
       ),
@@ -113,6 +137,8 @@ class _RegisterPageState extends State<RegisterPage> {
           setState(() {
             _selectedLanguage = newValue;
           });
+          // Save language preference
+          _languageService.setLanguageFromDisplayName(newValue);
         }
       },
     );
@@ -145,8 +171,8 @@ class _RegisterPageState extends State<RegisterPage> {
           ],
         ),
         const SizedBox(height: AppTheme.paddingSmall),
-        const Text(
-          'Akıllı Tarım Çözümleri',
+        Text(
+          Translations.get('smart_agriculture_solutions', _languageService.currentLanguage),
           style: AppTheme.subtitleStyle,
         ),
       ],
@@ -158,13 +184,13 @@ class _RegisterPageState extends State<RegisterPage> {
       children: [
         TextFormField(
           controller: _nameController,
-          decoration: const InputDecoration(
-            labelText: 'Ad Soyad',
-            prefixIcon: Icon(
+          decoration: InputDecoration(
+            labelText: Translations.get('full_name', _languageService.currentLanguage),
+            prefixIcon: const Icon(
               Icons.person_outline,
               color: AppTheme.primaryColor,
             ),
-            border: OutlineInputBorder(),
+            border: const OutlineInputBorder(),
             filled: true,
             fillColor: AppTheme.surfaceColor,
           ),
@@ -174,13 +200,13 @@ class _RegisterPageState extends State<RegisterPage> {
         TextFormField(
           controller: _emailController,
           keyboardType: TextInputType.emailAddress,
-          decoration: const InputDecoration(
-            labelText: 'E-posta',
-            prefixIcon: Icon(
+          decoration: InputDecoration(
+            labelText: Translations.get('email', _languageService.currentLanguage),
+            prefixIcon: const Icon(
               Icons.email_outlined,
               color: AppTheme.primaryColor,
             ),
-            border: OutlineInputBorder(),
+            border: const OutlineInputBorder(),
             filled: true,
             fillColor: AppTheme.surfaceColor,
           ),
@@ -191,7 +217,7 @@ class _RegisterPageState extends State<RegisterPage> {
           controller: _passwordController,
           obscureText: _obscurePassword,
           decoration: InputDecoration(
-            labelText: 'Şifre',
+            labelText: Translations.get('password', _languageService.currentLanguage),
             prefixIcon: const Icon(
               Icons.lock_outline,
               color: AppTheme.primaryColor,
@@ -218,7 +244,7 @@ class _RegisterPageState extends State<RegisterPage> {
           controller: _confirmPasswordController,
           obscureText: _obscureConfirmPassword,
           decoration: InputDecoration(
-            labelText: 'Şifre Tekrar',
+            labelText: Translations.get('confirm_password', _languageService.currentLanguage),
             prefixIcon: const Icon(
               Icons.lock_outline,
               color: AppTheme.primaryColor,
@@ -246,7 +272,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
   Widget _buildCreateAccountButton() {
     return AppButton(
-      text: 'Hesap Oluştur',
+      text: Translations.get('register_button', _languageService.currentLanguage),
       onPressed: _handleCreateAccount,
       isLoading: _isLoading,
       isFullWidth: true,
@@ -257,18 +283,18 @@ class _RegisterPageState extends State<RegisterPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Text(
-          'Zaten hesabınız var mı? ',
-          style: TextStyle(
+        Text(
+          Translations.get('already_have_account', _languageService.currentLanguage),
+          style: const TextStyle(
             fontSize: AppTheme.fontSizeMedium,
             color: AppTheme.textSecondaryColor,
           ),
         ),
         GestureDetector(
           onTap: () => Navigator.pushNamed(context, AppRouter.login),
-          child: const Text(
-            'Giriş Yap',
-            style: TextStyle(
+          child: Text(
+            Translations.get('login', _languageService.currentLanguage),
+            style: const TextStyle(
               fontSize: AppTheme.fontSizeMedium,
               color: AppTheme.primaryColor,
               fontWeight: AppTheme.fontWeightBold,
@@ -303,13 +329,13 @@ class _RegisterPageState extends State<RegisterPage> {
       
       // Başarılı kayıt sonrası ürün seçimi sayfasına yönlendir
       if (mounted) {
-        context.showSnackBar('Hesap başarıyla oluşturuldu! Hoş geldin ${user.name}');
+        context.showSnackBar(Translations.get('register_success', _languageService.currentLanguage));
         AppRouter.navigateAndReplace(context, AppRouter.productSelection);
       }
     } catch (e) {
       print('❌ Registration error: $e');
       if (mounted) {
-        context.showSnackBar('Hesap oluşturulurken hata oluştu: $e');
+        context.showSnackBar('${Translations.get('register_error', _languageService.currentLanguage)} $e');
       }
     } finally {
       if (mounted) {
