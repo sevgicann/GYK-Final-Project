@@ -327,10 +327,10 @@ class _RegisterPageState extends State<RegisterPage> {
 
       print('✅ Registration successful for user: ${user.name}');
       
-      // Başarılı kayıt sonrası ürün seçimi sayfasına yönlendir
+      // Başarılı kayıt sonrası dashboard'a yönlendir
       if (mounted) {
         context.showSnackBar(Translations.get('register_success', _languageService.currentLanguage));
-        AppRouter.navigateAndReplace(context, AppRouter.productSelection);
+        AppRouter.navigateAndReplace(context, AppRouter.dashboard);
       }
     } catch (e) {
       print('❌ Registration error: $e');

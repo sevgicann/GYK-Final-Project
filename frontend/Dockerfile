@@ -63,4 +63,4 @@ RUN flutter config --enable-web
 EXPOSE 3000
 
 # Start Flutter web development server
-CMD ["flutter", "run", "-d", "web-server", "--web-port", "3000", "--web-hostname", "0.0.0.0"]
+CMD ["flutter", "run", "-d", "web-server", "--web-port", "3000", "--web-hostname", "0.0.0.0", "--no-web-browser-launch"]

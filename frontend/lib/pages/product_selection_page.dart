@@ -645,7 +645,7 @@ class _ProductSelectionPageState extends State<ProductSelectionPage> {
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: AppTheme.paddingLarge),
-              child: _buildRecommendationsContent(),
+              child: _buildRecommendationsContent(responseData),
             ),
           ),
         ],
@@ -653,13 +653,141 @@ class _ProductSelectionPageState extends State<ProductSelectionPage> {
     );
   }
 
-  Widget _buildRecommendationsContent() {
+  Widget _buildRecommendationsContent([Map<String, dynamic>? responseData]) {
     if (_selectedProduct == null) return const SizedBox.shrink();
 
     final product = _selectedProduct!;
+    
+    // Model sonuçları varsa onları kullan, yoksa ürün gereksinimlerini kullan
+    List<RecommendationItem> items;
+    String? notes;
+    String? region;
+    
+    if (responseData != null && responseData['success'] == true) {
+      final data = responseData['data'];
+      final recommendations = data['recommendations'] as Map<String, dynamic>?;
+      
+      // Model sonuçlarından sadece gerçek değerleri al
+      items = [];
+      
+      if (recommendations != null) {
+        // Toprak önerileri
+        final soilRecs = recommendations['soil_recommendations'] as Map<String, dynamic>?;
+        if (soilRecs != null) {
+          if (soilRecs['ph_level'] != null) {
+            items.add(RecommendationItem(
+              label: 'Toprak pH', 
+              value: soilRecs['ph_level'].toString()
+            ));
+          }
+          if (soilRecs['soil_type'] != null) {
+            items.add(RecommendationItem(
+              label: 'Toprak Tipi', 
+              value: soilRecs['soil_type'].toString()
+            ));
+          }
+          if (soilRecs['drainage'] != null) {
+            items.add(RecommendationItem(
+              label: 'Drenaj', 
+              value: soilRecs['drainage'].toString()
+            ));
+          }
+          if (soilRecs['organic_matter'] != null) {
+            items.add(RecommendationItem(
+              label: 'Organik Madde', 
+              value: soilRecs['organic_matter'].toString()
+            ));
+          }
+        }
+        
+        // Çevre koşulları
+        final envRecs = recommendations['environmental_conditions'] as Map<String, dynamic>?;
+        if (envRecs != null) {
+          if (envRecs['temperature'] != null) {
+            items.add(RecommendationItem(
+              label: 'Sıcaklık', 
+              value: envRecs['temperature'].toString()
+            ));
+          }
+          if (envRecs['humidity'] != null) {
+            items.add(RecommendationItem(
+              label: 'Nem', 
+              value: envRecs['humidity'].toString()
+            ));
+          }
+          if (envRecs['sunlight'] != null) {
+            items.add(RecommendationItem(
+              label: 'Güneş Işığı', 
+              value: envRecs['sunlight'].toString()
+            ));
+          }
+          if (envRecs['rainfall'] != null) {
+            items.add(RecommendationItem(
+              label: 'Yağış', 
+              value: envRecs['rainfall'].toString()
+            ));
+          }
+        }
+        
+        // Tarım uygulamaları
+        final farmingRecs = recommendations['farming_practices'] as Map<String, dynamic>?;
+        if (farmingRecs != null) {
+          if (farmingRecs['irrigation'] != null) {
+            items.add(RecommendationItem(
+              label: 'Sulama', 
+              value: farmingRecs['irrigation'].toString()
+            ));
+          }
+          if (farmingRecs['fertilizer'] != null) {
+            items.add(RecommendationItem(
+              label: 'Gübreleme', 
+              value: farmingRecs['fertilizer'].toString()
+            ));
+          }
+          if (farmingRecs['planting_season'] != null) {
+            items.add(RecommendationItem(
+              label: 'Dikim Zamanı', 
+              value: farmingRecs['planting_season'].toString()
+            ));
+          }
+          if (farmingRecs['harvest_time'] != null) {
+            items.add(RecommendationItem(
+              label: 'Hasat Zamanı', 
+              value: farmingRecs['harvest_time'].toString()
+            ));
+          }
+        }
+        
+        // Bölgesel uyarlamalar
+        final regionalRecs = recommendations['regional_adaptations'] as Map<String, dynamic>?;
+        if (regionalRecs != null) {
+          if (regionalRecs['climate_considerations'] != null) {
+            items.add(RecommendationItem(
+              label: 'İklim Önerileri', 
+              value: regionalRecs['climate_considerations'].toString()
+            ));
+          }
+          if (regionalRecs['local_pests'] != null) {
+            items.add(RecommendationItem(
+              label: 'Zararlı Kontrolü', 
+              value: regionalRecs['local_pests'].toString()
+            ));
+          }
+          if (regionalRecs['weather_protection'] != null) {
+            items.add(RecommendationItem(
+              label: 'Hava Koruması', 
+              value: regionalRecs['weather_protection'].toString()
+            ));
+          }
+        }
+      }
+      
+      notes = 'Önerilen Koşullar';
+      region = 'Bölge: ${data['location']?.toString() ?? _selectedRegion}';
+    } else {
+      // Fallback: Ürün gereksinimlerini kullan
     final requirements = product.requirements;
-
-    final items = [
+      items = [
       RecommendationItem(label: 'Toprak pH', value: requirements.ph),
       RecommendationItem(label: 'Azot (ppm)', value: requirements.nitrogen),
       RecommendationItem(label: 'Fosfor (ppm)', value: requirements.phosphorus),
@@ -668,12 +796,137 @@ class _ProductSelectionPageState extends State<ProductSelectionPage> {
       RecommendationItem(label: 'Sıcaklık °C', value: requirements.temperature),
       RecommendationItem(label: 'Yağış mm', value: requirements.rainfall),
     ];
+      notes = requirements.notes;
+      region = 'Bölge: $_selectedRegion';
+    }
 
     return RecommendationCard(
       title: '${product.name} için önerilen koşullar',
       items: items,
-      notes: requirements.notes,
-      region: 'Bölge: $_selectedRegion',
+      notes: notes,
+      region: region,
+    );
+  }
+}
+
+class RecommendationItem {
+  final String label;
+  final String value;
+
+  RecommendationItem({required this.label, required this.value});
+}
+
+class RecommendationCard extends StatelessWidget {
+  final String title;
+  final List<RecommendationItem> items;
+  final String? notes;
+  final String? region;
+
+  const RecommendationCard({
+    super.key,
+    required this.title,
+    required this.items,
+    this.notes,
+    this.region,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppTheme.paddingLarge),
+      decoration: BoxDecoration(
+        color: Colors.blue.shade50,
+        borderRadius: BorderRadius.circular(AppTheme.borderRadius),
+        border: Border.all(color: Colors.blue.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Başlık
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: AppTheme.fontSizeLarge,
+              fontWeight: AppTheme.fontWeightBold,
+              color: Colors.blue,
+            ),
+          ),
+          const SizedBox(height: AppTheme.paddingMedium),
+          
+          // Parametreler
+          ...items.map((item) => Padding(
+            padding: const EdgeInsets.only(bottom: AppTheme.paddingSmall),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    item.label,
+                    style: const TextStyle(
+                      fontSize: AppTheme.fontSizeMedium,
+                      fontWeight: AppTheme.fontWeightMedium,
+                      color: Colors.blue,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 3,
+                  child: Text(
+                    item.value,
+                    style: const TextStyle(
+                      fontSize: AppTheme.fontSizeMedium,
+                      color: AppTheme.textSecondaryColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          )).toList(),
+          
+          // Notlar
+          if (notes != null) ...[
+            const SizedBox(height: AppTheme.paddingMedium),
+            Container(
+              padding: const EdgeInsets.all(AppTheme.paddingMedium),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(AppTheme.borderRadius),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Notlar:',
+                    style: TextStyle(
+                      fontSize: AppTheme.fontSizeMedium,
+                      fontWeight: AppTheme.fontWeightBold,
+                      color: Colors.blue,
+                    ),
+                  ),
+                  const SizedBox(height: AppTheme.paddingSmall),
+                  Text(
+                    notes!,
+                    style: const TextStyle(
+                      fontSize: AppTheme.fontSizeSmall,
+                      color: AppTheme.textSecondaryColor,
+                    ),
+                  ),
+                  if (region != null) ...[
+                    const SizedBox(height: AppTheme.paddingSmall),
+                    Text(
+                      region!,
+                      style: const TextStyle(
+                        fontSize: AppTheme.fontSizeSmall,
+                        color: AppTheme.textSecondaryColor,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

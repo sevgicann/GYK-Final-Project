@@ -521,7 +521,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 text: Translations.get('get_recommendations', _languageService.currentLanguage),
                 type: AppButtonType.primary,
                 onPressed: () {
-                  Navigator.pushNamed(context, AppRouter.environmentRecommendation);
+                  Navigator.pushNamed(context, AppRouter.productSelection);
                 },
                 icon: Icons.arrow_forward,
               ),
@@ -713,7 +713,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 text: Translations.get('get_recommendations', _languageService.currentLanguage),
                 type: AppButtonType.primary,
                 onPressed: () {
-                  Navigator.pushNamed(context, AppRouter.environmentRecommendation);
+                  Navigator.pushNamed(context, AppRouter.productSelection);
                 },
                 icon: Icons.arrow_forward,
               ),
@@ -801,7 +801,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   text: Translations.get('get_recommendations', _languageService.currentLanguage),
                   type: AppButtonType.primary,
                   onPressed: () {
-                    Navigator.pushNamed(context, AppRouter.environmentRecommendation);
+                    Navigator.pushNamed(context, AppRouter.productSelection);
                   },
                   icon: Icons.arrow_forward,
                 ),
