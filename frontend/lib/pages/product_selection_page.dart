@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../core/theme/app_theme.dart';
 import '../core/navigation/app_router.dart';
 import '../core/widgets/app_layout.dart';
@@ -145,24 +147,20 @@ class _ProductSelectionPageState extends State<ProductSelectionPage> {
           Row(
             children: [
               // Ürün Görseli
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(AppTheme.borderRadius),
-                  image: DecorationImage(
-                    image: NetworkImage(_imageService.getProductImage(_selectedProduct!.name)),
-                    fit: BoxFit.cover,
+              ClipRRect(
+                borderRadius: BorderRadius.circular(AppTheme.borderRadius),
+                child: Image.network(
+                  _imageService.getProductImage(_selectedProduct!.name),
+                  width: 80,
+                  height: 80,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    width: 80,
+                    height: 80,
+                    color: AppTheme.primaryLightColor.withOpacity(0.2),
+                    child: const Icon(Icons.broken_image, color: AppTheme.textSecondaryColor),
                   ),
                 ),
-                child: _imageService.isImageLoaded
-                    ? null
-                    : const Center(
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryColor),
-                        ),
-                      ),
               ),
               const SizedBox(width: AppTheme.paddingMedium),
               
@@ -586,7 +584,62 @@ class _ProductSelectionPageState extends State<ProductSelectionPage> {
     }
   }
 
+  // Ürün seçimi ortam önerilerini SharedPreferences'a kaydet
+  Future<void> _saveProductEnvironmentRecommendation(Map<String, dynamic>? responseData) async {
+    if (responseData == null || responseData['success'] != true) return;
+    
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final data = responseData['data'] as Map<String, dynamic>?;
+      
+      if (data != null) {
+        final recommendations = data['recommendations'] as Map<String, dynamic>?;
+        final location = data['location'] as String?;
+        final product = data['product'] as String?;
+        
+        if (recommendations != null && location != null && product != null) {
+          // Ortam önerisi verilerini hazırla
+          final environmentData = {
+            'timestamp': DateTime.now().toIso8601String(),
+            'product': product,
+            'location': location,
+            'region': _selectedRegion ?? 'Bilinmeyen',
+            'soilType': recommendations['soil_recommendations']?['soil_type'] ?? 'Bilinmeyen',
+            'fertilizer': recommendations['farming_practices']?['fertilizer'] ?? 'Bilinmeyen',
+            'irrigation': recommendations['farming_practices']?['irrigation'] ?? 'Bilinmeyen',
+            'sunlight': recommendations['environmental_conditions']?['sunlight'] ?? 'Bilinmeyen',
+            'temperature': recommendations['environmental_conditions']?['temperature'] ?? 'Bilinmeyen',
+            'humidity': recommendations['environmental_conditions']?['humidity'] ?? 'Bilinmeyen',
+            'rainfall': recommendations['environmental_conditions']?['rainfall'] ?? 'Bilinmeyen',
+            'ph_level': recommendations['soil_recommendations']?['ph_level'] ?? 'Bilinmeyen',
+          };
+          
+          // Mevcut geçmişi al
+          final existingHistory = prefs.getStringList('product_environment_history') ?? [];
+          
+          // Yeni veriyi ekle
+          existingHistory.insert(0, json.encode(environmentData));
+          
+          // Son 10 kaydı tut
+          if (existingHistory.length > 10) {
+            existingHistory.removeRange(10, existingHistory.length);
+          }
+          
+          // Kaydet
+          await prefs.setStringList('product_environment_history', existingHistory);
+          
+          print('✅ Product environment recommendation saved to history');
+        }
+      }
+    } catch (e) {
+      print('❌ Error saving product environment recommendation: $e');
+    }
+  }
+
   void _showEnvironmentRecommendations([Map<String, dynamic>? responseData]) {
+    // Ortam önerilerini SharedPreferences'a kaydet
+    _saveProductEnvironmentRecommendation(responseData);
+    
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,

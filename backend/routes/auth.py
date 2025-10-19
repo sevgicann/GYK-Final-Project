@@ -1,8 +1,12 @@
 from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
-from models.user import User
 import re
 from utils.logger import log_api_call, get_logger, log_info, log_error, log_success
+
+# Import User from app
+def get_user_class():
+    from app import User
+    return User
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -105,6 +109,7 @@ def register():
             }), 400
         
         # Check if user already exists
+        User = get_user_class()
         if User.find_by_email(email):
             return jsonify({
                 'success': False,
@@ -183,6 +188,7 @@ def login():
             }), 400
         
         # Find user
+        User = get_user_class()
         user = User.find_by_email(email)
         if not user:
             return jsonify({
@@ -232,6 +238,7 @@ def get_current_user():
     """Get current user information"""
     try:
         user_id = get_jwt_identity()
+        User = get_user_class()
         user = User.find_by_id(user_id)
         
         if not user:
@@ -260,6 +267,7 @@ def update_profile():
     """Update user profile"""
     try:
         user_id = get_jwt_identity()
+        User = get_user_class()
         user = User.find_by_id(user_id)
         
         if not user:
@@ -327,6 +335,7 @@ def change_password():
     """Change user password"""
     try:
         user_id = get_jwt_identity()
+        User = get_user_class()
         user = User.find_by_id(user_id)
         
         if not user:

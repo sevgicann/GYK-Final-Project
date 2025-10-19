@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from models.average_soil_data import AverageSoilData
+# AverageSoilData will be imported from app
 from datetime import datetime
 from utils.logger import log_api_call, get_logger
 
@@ -30,6 +30,7 @@ def get_average_soil_data():
         logger.info("=" * 60)
         
         # Get average soil data with fallback logic
+        from app import AverageSoilData
         average_data = AverageSoilData.get_best_match(
             soil_type=soil_type,
             region=region,
@@ -49,6 +50,7 @@ def get_average_soil_data():
         else:
             # Return default values if no match found
             logger.warning("No matching average soil data found, returning defaults")
+            from app import AverageSoilData
             default_values = AverageSoilData.get_default_averages()
             
             return jsonify({
@@ -87,6 +89,7 @@ def get_all_average_soil_data():
     
     try:
         # Get all average soil data
+        from app import AverageSoilData
         all_data = AverageSoilData.query.all()
         
         logger.info(f"Retrieved {len(all_data)} average soil data records")

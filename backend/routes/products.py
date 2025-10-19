@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from models.product import Product, ProductRequirements
-from models.user import User
+# Product will be imported from app
+# User will be imported from app
 from flask import current_app
 
 products_bp = Blueprint('products', __name__)
@@ -17,6 +17,7 @@ def get_products():
         per_page = int(request.args.get('per_page', 20))
         
         # Build query
+        from app import Product
         query = Product.query.filter_by(is_active=True)
         
         if category:
@@ -63,6 +64,7 @@ def get_products():
 def get_product(product_id):
     """Get a specific product by ID"""
     try:
+        from app import Product
         product = Product.query.get(product_id)
         
         if not product or not product.is_active:
@@ -89,6 +91,7 @@ def get_product(product_id):
 def get_categories():
     """Get all product categories"""
     try:
+        from app import Product
         categories = Product.get_all_categories()
         
         return jsonify({
@@ -117,6 +120,7 @@ def search_products():
                 'message': 'Search query is required'
             }), 400
         
+        from app import Product
         products = Product.search_products(query)
         
         return jsonify({
@@ -141,6 +145,7 @@ def recommend_products():
     """Recommend products based on environment data"""
     try:
         user_id = get_jwt_identity()
+        from app import User
         user = User.find_by_id(user_id)
         
         if not user:
@@ -163,6 +168,7 @@ def recommend_products():
         rainfall = data.get('rainfall')
         
         # Get all products
+        from app import Product
         products = Product.query.filter_by(is_active=True).all()
         recommendations = []
         
@@ -229,6 +235,7 @@ def create_product():
     """Create a new product (Admin only)"""
     try:
         user_id = get_jwt_identity()
+        from app import User
         user = User.find_by_id(user_id)
         
         if not user:

@@ -6,6 +6,7 @@ class ImageService {
   // Ürün görselleri için placeholder URL'ler
   // Gerçek uygulamada bu URL'ler gerçek görsellerle değiştirilecek
   final Map<String, String> _productImages = {
+    // Sebzeler
     'Havuç': 'https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=300&h=300&fit=crop&auto=format',
     'Domates': 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=300&h=300&fit=crop&auto=format',
     'Patates': 'https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=300&h=300&fit=crop&auto=format',
@@ -16,8 +17,68 @@ class ImageService {
     'Ispanak': 'https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=300&h=300&fit=crop&auto=format',
     'Brokoli': 'https://images.unsplash.com/photo-1584270354949-c26b0d5b4a0c?w=300&h=300&fit=crop&auto=format',
     'Karnabahar': 'https://images.unsplash.com/photo-1584270354949-c26b0d5b4a0c?w=300&h=300&fit=crop&auto=format',
-    'Mısır': 'https://images.unsplash.com/photo-1551754655-cd27e38d2076?w=300&h=300&fit=crop&auto=format',
-    'Pirinç': 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=300&h=300&fit=crop&auto=format',
+    'Lahana': 'https://images.unsplash.com/photo-1584270354949-c26b0d5b4a0c?w=300&h=300&fit=crop&auto=format',
+    'Pancar': 'https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=300&h=300&fit=crop&auto=format',
+    'Turp': 'https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=300&h=300&fit=crop&auto=format',
+    'Hıyar': 'https://images.unsplash.com/photo-1449300079323-02e209d9d3a6?w=300&h=300&fit=crop&auto=format',
+    'Patlıcan': 'https://images.unsplash.com/photo-1566385101042-1a0aa0c1268c?w=300&h=300&fit=crop&auto=format',
+    'Kabak': 'https://images.unsplash.com/photo-1449300079323-02e209d9d3a6?w=300&h=300&fit=crop&auto=format',
+    'Fasulye': 'https://images.unsplash.com/photo-1566385101042-1a0aa0c1268c?w=300&h=300&fit=crop&auto=format',
+    'Bezelye': 'https://images.unsplash.com/photo-1566385101042-1a0aa0c1268c?w=300&h=300&fit=crop&auto=format',
+    'Mercimek': 'https://images.unsplash.com/photo-1566385101042-1a0aa0c1268c?w=300&h=300&fit=crop&auto=format',
+    
+    // Tahıllar
+    'Mısır': 'https://images.unsplash.com/photo-1551754655-cd27e38d2076?w=300&h=300&fit=crop&auto=format', // Mısır koçanları
+    'Pirinç': 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=300&h=300&fit=crop&auto=format', // Pirinç taneleri
+    'Buğday': 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=300&h=300&fit=crop&auto=format', // Buğday başakları
+    'Arpa': 'https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=300&h=300&fit=crop&auto=format', // Arpa tarlası
+    'Yulaf': 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=300&h=300&fit=crop&auto=format', // Yulaf taneleri
+    'Çavdar': 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=300&h=300&fit=crop&auto=format',
+    
+    // İngilizce ürün isimleri (ML modelinden gelen) - Doğru fotoğraflarla eşleştirildi
+    'corn': 'https://images.unsplash.com/photo-1551754655-cd27e38d2076?w=300&h=300&fit=crop&auto=format', // Mısır - Sarı mısır koçanı
+    'rice': 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=300&h=300&fit=crop&auto=format', // Pirinç
+    'wheat': 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=300&h=300&fit=crop&auto=format', // Buğday
+    'barley': 'https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=300&h=300&fit=crop&auto=format', // Arpa
+    'oat': 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=300&h=300&fit=crop&auto=format', // Yulaf
+    'sunflower': 'https://images.unsplash.com/photo-1470509037663-253afd7f0f51?w=300&h=300&fit=crop&auto=format', // Ayçiçeği
+    'cotton': 'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=300&h=300&fit=crop&auto=format', // Pamuk
+    
+    // Meyveler
+    'Elma': 'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=300&h=300&fit=crop&auto=format',
+    'Armut': 'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=300&h=300&fit=crop&auto=format',
+    'Kiraz': 'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=300&h=300&fit=crop&auto=format',
+    'Vişne': 'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=300&h=300&fit=crop&auto=format',
+    'Şeftali': 'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=300&h=300&fit=crop&auto=format',
+    'Kayısı': 'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=300&h=300&fit=crop&auto=format',
+    'Üzüm': 'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=300&h=300&fit=crop&auto=format',
+    'Çilek': 'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=300&h=300&fit=crop&auto=format',
+    'Ahududu': 'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=300&h=300&fit=crop&auto=format',
+    'Böğürtlen': 'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=300&h=300&fit=crop&auto=format',
+    
+    // Endüstriyel Bitkiler
+    'Pamuk': 'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=300&h=300&fit=crop&auto=format', // Pamuk kozaları
+    'Ayçiçeği': 'https://images.unsplash.com/photo-1470509037663-253afd7f0f51?w=300&h=300&fit=crop&auto=format', // Ayçiçeği
+    'Soya': 'https://images.unsplash.com/photo-1566385101042-1a0aa0c1268c?w=300&h=300&fit=crop&auto=format',
+    'Kanola': 'https://images.unsplash.com/photo-1551754655-cd27e38d2076?w=300&h=300&fit=crop&auto=format',
+    'Susam': 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=300&h=300&fit=crop&auto=format',
+    'Keten': 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=300&h=300&fit=crop&auto=format',
+    
+    // Yem Bitkileri
+    'Yonca': 'https://images.unsplash.com/photo-1622206151226-18ca2c9ab4a1?w=300&h=300&fit=crop&auto=format',
+    'Korunga': 'https://images.unsplash.com/photo-1622206151226-18ca2c9ab4a1?w=300&h=300&fit=crop&auto=format',
+    'Fiğ': 'https://images.unsplash.com/photo-1566385101042-1a0aa0c1268c?w=300&h=300&fit=crop&auto=format',
+    'Burçak': 'https://images.unsplash.com/photo-1566385101042-1a0aa0c1268c?w=300&h=300&fit=crop&auto=format',
+    
+    // Baharatlar
+    'Kırmızı Biber': 'https://images.unsplash.com/photo-1566385101042-1a0aa0c1268c?w=300&h=300&fit=crop&auto=format',
+    'Karabiber': 'https://images.unsplash.com/photo-1566385101042-1a0aa0c1268c?w=300&h=300&fit=crop&auto=format',
+    'Kimyon': 'https://images.unsplash.com/photo-1566385101042-1a0aa0c1268c?w=300&h=300&fit=crop&auto=format',
+    'Kekik': 'https://images.unsplash.com/photo-1566385101042-1a0aa0c1268c?w=300&h=300&fit=crop&auto=format',
+    'Nane': 'https://images.unsplash.com/photo-1566385101042-1a0aa0c1268c?w=300&h=300&fit=crop&auto=format',
+    'Maydanoz': 'https://images.unsplash.com/photo-1566385101042-1a0aa0c1268c?w=300&h=300&fit=crop&auto=format',
+    'Dereotu': 'https://images.unsplash.com/photo-1566385101042-1a0aa0c1268c?w=300&h=300&fit=crop&auto=format',
+    'Fesleğen': 'https://images.unsplash.com/photo-1566385101042-1a0aa0c1268c?w=300&h=300&fit=crop&auto=format',
   };
 
   // Varsayılan ürün görseli
@@ -118,15 +179,4 @@ class ImageService {
     return _cityImages[cityName] ?? defaultCityImage;
   }
 
-  // Görsel yükleme durumu için
-  bool isImageLoaded = false;
-  String? loadingError;
-
-  void setImageLoaded(bool loaded) {
-    isImageLoaded = loaded;
-  }
-
-  void setLoadingError(String? error) {
-    loadingError = error;
-  }
 }

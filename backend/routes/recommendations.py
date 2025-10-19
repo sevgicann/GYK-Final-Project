@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from models.recommendation import Recommendation
-from models.user import User
+# User will be imported from app
 from models.product import Product
 from models.environment import Environment
 from models.average_soil_data import AverageSoilData

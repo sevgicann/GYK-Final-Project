@@ -1,8 +1,8 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from models.user import User
-from models.environment import Environment
-from models.recommendation import Recommendation
+# User will be imported from app
+# Environment will be imported from app
+# Recommendation will be imported from app
 from flask import current_app
 
 users_bp = Blueprint('users', __name__)
@@ -13,6 +13,7 @@ def get_profile():
     """Get current user's profile"""
     try:
         user_id = get_jwt_identity()
+        from app import User
         user = User.find_by_id(user_id)
         
         if not user:
@@ -41,6 +42,7 @@ def update_profile():
     """Update current user's profile"""
     try:
         user_id = get_jwt_identity()
+        from app import User
         user = User.find_by_id(user_id)
         
         if not user:
@@ -108,6 +110,7 @@ def get_dashboard():
     """Get user dashboard data"""
     try:
         user_id = get_jwt_identity()
+        from app import User
         user = User.find_by_id(user_id)
         
         if not user:
@@ -117,9 +120,11 @@ def get_dashboard():
             }), 404
         
         # Get user's environments
+        from app import Environment
         environments = Environment.get_user_environments(user_id)
         
         # Get recent recommendations
+        from app import Recommendation
         recent_recommendations = Recommendation.query.filter_by(
             user_id=user_id, 
             status='active'
@@ -165,6 +170,7 @@ def get_settings():
     """Get user settings"""
     try:
         user_id = get_jwt_identity()
+        from app import User
         user = User.find_by_id(user_id)
         
         if not user:
@@ -204,6 +210,7 @@ def update_settings():
     """Update user settings"""
     try:
         user_id = get_jwt_identity()
+        from app import User
         user = User.find_by_id(user_id)
         
         if not user:
@@ -277,6 +284,7 @@ def deactivate_account():
     """Deactivate user account"""
     try:
         user_id = get_jwt_identity()
+        from app import User
         user = User.find_by_id(user_id)
         
         if not user:

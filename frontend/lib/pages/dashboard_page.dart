@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/theme/app_theme.dart';
@@ -11,6 +12,7 @@ import '../core/utils/responsive_utils.dart';
 import '../core/widgets/responsive_widgets.dart';
 import '../services/my_products_service.dart';
 import '../services/my_environments_service.dart';
+import '../services/image_service.dart';
 import '../models/product.dart';
 
 class DashboardPage extends StatefulWidget {
@@ -71,30 +73,82 @@ class _DashboardPageState extends State<DashboardPage> {
     });
 
     try {
-      // Load recent products (last 5)
-      final products = await _myProductsService.getSavedProducts();
-      _recentProducts = products.take(5).toList();
-
-      // Load recent environments (last 5)
-      final environments = await _myEnvironmentsService.getSavedEnvironments();
-      _recentEnvironments = environments.take(5).toList();
+      // Clear existing data
+      _recentProducts.clear();
+      _recentEnvironments.clear();
       
-      // Test için eğer veri yoksa örnek veri ekle
-      if (_recentProducts.isEmpty && _recentEnvironments.isEmpty) {
-        _addSampleHistoryData();
-      }
+      // Load only recommendation history (not saved products/environments)
+      await _loadProductEnvironmentRecommendations();
+      await _loadEnvironmentProductRecommendations();
+      
+      // Final sort of all environments by timestamp (newest first)
+      _recentEnvironments.sort((a, b) {
+        final timestampA = a['timestamp'] as DateTime? ?? DateTime.now();
+        final timestampB = b['timestamp'] as DateTime? ?? DateTime.now();
+        return timestampB.compareTo(timestampA);
+      });
       
       print('History loaded: ${_recentProducts.length} products, ${_recentEnvironments.length} environments');
     } catch (e) {
       print('Error loading history data: $e');
-      // Hata durumunda da örnek veri ekle
-      _addSampleHistoryData();
     } finally {
       if (mounted) {
         setState(() {
           _isLoadingHistory = false;
         });
       }
+    }
+  }
+
+  // Load product environment recommendations from SharedPreferences
+  Future<void> _loadProductEnvironmentRecommendations() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final productEnvironmentHistory = prefs.getStringList('product_environment_history') ?? [];
+      
+      // Basit history yükleme - sadece son 5 kayıt
+      for (final jsonString in productEnvironmentHistory.take(5)) {
+        try {
+          final data = json.decode(jsonString);
+          _recentEnvironments.add({
+            'type': 'product_environment_recommendation',
+            'data': data,
+            'timestamp': DateTime.parse(data['timestamp'] ?? DateTime.now().toIso8601String()),
+          });
+        } catch (e) {
+          print('Error parsing product environment data: $e');
+        }
+      }
+      
+      print('Loaded ${productEnvironmentHistory.length} product environment recommendations');
+    } catch (e) {
+      print('Error loading product environment recommendations: $e');
+    }
+  }
+
+  // Load environment product recommendations from SharedPreferences
+  Future<void> _loadEnvironmentProductRecommendations() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final environmentProductHistory = prefs.getStringList('environment_product_history') ?? [];
+      
+      // Basit history yükleme - sadece son 5 kayıt
+      for (final jsonString in environmentProductHistory.take(5)) {
+        try {
+          final data = json.decode(jsonString);
+          _recentEnvironments.add({
+            'type': 'environment_product_recommendation',
+            'data': data,
+            'timestamp': DateTime.parse(data['timestamp'] ?? DateTime.now().toIso8601String()),
+          });
+        } catch (e) {
+          print('Error parsing environment product data: $e');
+        }
+      }
+      
+      print('Loaded ${environmentProductHistory.length} environment product recommendations');
+    } catch (e) {
+      print('Error loading environment product recommendations: $e');
     }
   }
 
@@ -873,41 +927,7 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildHistoryList() {
-    final allHistory = <Map<String, dynamic>>[];
-    
-    // Add recent products
-    for (var product in _recentProducts) {
-      allHistory.add({
-        'type': 'product',
-        'title': product.name,
-        'subtitle': product.category,
-        'icon': Icons.eco,
-        'color': AppTheme.primaryColor,
-        'data': product,
-      });
-    }
-    
-    // Add recent environments
-    for (var environment in _recentEnvironments) {
-      final data = environment['data'] as Map<String, dynamic>? ?? {};
-      allHistory.add({
-        'type': 'environment',
-        'title': 'Ortam Önerisi',
-        'subtitle': '${data['region'] ?? 'Bilinmeyen'} - ${data['soilType'] ?? 'Bilinmeyen'}',
-        'icon': Icons.location_on,
-        'color': Colors.blue,
-        'data': environment,
-      });
-    }
-    
-    // Sort by date (most recent first)
-    allHistory.sort((a, b) {
-      if (a['type'] == 'product' && b['type'] == 'environment') return -1;
-      if (a['type'] == 'environment' && b['type'] == 'product') return 1;
-      return 0; // Keep original order within same type
-    });
-    
-    if (allHistory.isEmpty) {
+    if (_recentEnvironments.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -938,28 +958,110 @@ class _DashboardPageState extends State<DashboardPage> {
       );
     }
     
-    // First two cards side by side, then remaining cards in pairs
-    return Column(
-      children: [
-        // First two cards side by side
-        if (allHistory.length >= 2)
-          Row(
-            children: [
-              Expanded(
-                child: _buildVerticalHistoryItem(allHistory[0]),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _buildVerticalHistoryItem(allHistory[1]),
-              ),
-            ],
-          ),
-        
-        // Remaining cards in pairs
-        if (allHistory.length > 2)
-          ..._buildRemainingCardsInPairs(allHistory.skip(2).toList()),
-      ],
+    return ListView.builder(
+      itemCount: _recentEnvironments.length,
+      itemBuilder: (context, index) {
+        final environment = _recentEnvironments[index];
+        return _buildSimpleHistoryItem(environment);
+      },
     );
+  }
+
+  Widget _buildSimpleHistoryItem(Map<String, dynamic> environment) {
+    final data = environment['data'] as Map<String, dynamic>? ?? {};
+    final environmentType = environment['type'] as String? ?? '';
+    
+    return Container(
+      height: 80,
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.grey[300]!,
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          // Icon
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: environmentType == 'product_environment_recommendation' 
+                  ? AppTheme.primaryColor.withOpacity(0.1)
+                  : Colors.blue.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              environmentType == 'product_environment_recommendation' 
+                  ? Icons.eco 
+                  : Icons.location_on,
+              color: environmentType == 'product_environment_recommendation' 
+                  ? AppTheme.primaryColor 
+                  : Colors.blue,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          // Content
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  environmentType == 'product_environment_recommendation' 
+                      ? 'Ürün → Ortam Önerisi'
+                      : 'Ortam → Ürün Önerisi',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _getHistoryDescription(data, environmentType),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getHistoryDescription(Map<String, dynamic> data, String type) {
+    if (type == 'product_environment_recommendation') {
+      // Ürün → Ortam önerisi: Ürün adı + Bölge + Toprak tipi
+      final product = data['product'] is String 
+          ? data['product'] as String
+          : (data['product'] as Map<String, dynamic>?)?['name'] as String? ?? 'Bilinmeyen';
+      final region = (data['region'] as String?) ?? 'Bilinmeyen';
+      final soilType = (data['soilType'] as String?) ?? 'Bilinmeyen';
+      return 'Ürün: $product | Bölge: $region | Toprak: $soilType';
+    } else if (type == 'environment_product_recommendation') {
+      // Ortam → Ürün önerisi: Ürün adı + Bölge + Toprak tipi (güven skoru yok)
+      final product = data['product'] is String 
+          ? data['product'] as String
+          : (data['product'] as Map<String, dynamic>?)?['name'] as String? ?? 'Bilinmeyen';
+      
+      // Environment bilgilerini al
+      final environment = data['environment'] as Map<String, dynamic>? ?? {};
+      final region = (environment['region'] as String?) ?? (data['region'] as String?) ?? 'Bilinmeyen';
+      final soilType = (environment['soilType'] as String?) ?? (data['soilType'] as String?) ?? 'Bilinmeyen';
+      
+      return 'Ürün: $product | Bölge: $region | Toprak: $soilType';
+    }
+    return 'Bilinmeyen öneri';
   }
 
   List<Widget> _buildRemainingCardsInPairs(List<Map<String, dynamic>> remainingCards) {
@@ -990,149 +1092,212 @@ class _DashboardPageState extends State<DashboardPage> {
     return widgets;
   }
 
-  Widget _buildVerticalHistoryItem(Map<String, dynamic> item) {
+  Widget _buildVerticalHistoryItem(Map<String, dynamic> pair) {
+    final left = pair['left'] as Map<String, dynamic>? ?? {};
+    final right = pair['right'] as Map<String, dynamic>? ?? {};
+    final flow = pair['flow'] as String? ?? '';
+    
     return Container(
-      height: 80, // Sabit yükseklik
+      height: 120, // Increased height for better display
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: item['color'].withOpacity(0.1),
+        color: Colors.grey[50],
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: item['color'].withOpacity(0.3),
+          color: Colors.grey[300]!,
           width: 1,
         ),
       ),
       child: Row(
         children: [
-          // Icon
+          // Left card
+          Expanded(
+            child: _buildEnvironmentCard(left),
+          ),
+          // Arrow
           Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: item['color'],
-              borderRadius: BorderRadius.circular(8),
-            ),
+            margin: const EdgeInsets.symmetric(horizontal: 8),
             child: Icon(
-              item['icon'],
-              color: Colors.white,
+              Icons.arrow_forward,
+              color: Colors.grey[600],
               size: 20,
             ),
           ),
-          const SizedBox(width: 12),
-          // Content
+          // Right card
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  item['title'],
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: AppTheme.fontWeightBold,
-                    color: AppTheme.textPrimaryColor,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  item['subtitle'],
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppTheme.textSecondaryColor,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-          // Arrow
-          Icon(
-            Icons.arrow_forward_ios,
-            color: AppTheme.textSecondaryColor.withOpacity(0.5),
-            size: 16,
+            child: _buildProductCard(right),
           ),
         ],
       ),
     );
   }
 
-
-
-  Widget _buildHistoryItem(Map<String, dynamic> item) {
+  Widget _buildEnvironmentCard(Map<String, dynamic> data) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 6), // Küçültüldü
-      padding: const EdgeInsets.all(8), // Küçültüldü
+      height: 90,
+      padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: item['color'].withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8), // Daha az yuvarlak (kareye yakın)
+        color: data['color']?.withOpacity(0.1) ?? Colors.blue.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: item['color'].withOpacity(0.3),
+          color: data['color']?.withOpacity(0.3) ?? Colors.blue.withOpacity(0.3),
           width: 1,
         ),
       ),
-      child: Row(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            width: 24, // Küçültüldü
-            height: 24, // Küçültüldü
-            decoration: BoxDecoration(
-              color: item['color'],
-              borderRadius: BorderRadius.circular(4), // Daha az yuvarlak
-            ),
-            child: Icon(
-              item['icon'],
-              color: Colors.white,
-              size: 14, // Küçültüldü
-            ),
-          ),
-          const SizedBox(width: 8), // Küçültüldü
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item['title'],
-                  style: const TextStyle(
-                    fontSize: 13, // Küçültüldü
-                    fontWeight: AppTheme.fontWeightBold,
-                    color: AppTheme.textPrimaryColor,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  item['subtitle'],
-                  style: const TextStyle(
-                    fontSize: 11, // Küçültüldü
-                    color: AppTheme.textSecondaryColor,
-                  ),
-                ),
-              ],
-            ),
-          ),
           Icon(
-            Icons.arrow_forward_ios,
-            size: 12, // Küçültüldü
-            color: AppTheme.textSecondaryColor.withOpacity(0.5),
+            data['icon'] ?? Icons.location_on,
+            color: data['color'] ?? Colors.blue,
+            size: 20,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            (data['title'] as String?) ?? 'Bilinmeyen',
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 2),
+          Text(
+            (data['subtitle'] as String?) ?? '',
+            style: const TextStyle(
+              fontSize: 10,
+              color: Colors.grey,
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
     );
   }
 
-  // Navigation Methods
-
-  // Action Methods
-  void _showUserProfile() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(Translations.get('user_profile_coming_soon', _languageService.currentLanguage))),
+  Widget _buildProductCard(Map<String, dynamic> data) {
+    return Container(
+      height: 90,
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: data['color']?.withOpacity(0.1) ?? AppTheme.primaryColor.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: data['color']?.withOpacity(0.3) ?? AppTheme.primaryColor.withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Ürün resmi veya ikon
+          _buildProductImage(data),
+          const SizedBox(height: 4),
+          Text(
+            (data['title'] as String?) ?? 'Bilinmeyen',
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 2),
+          Text(
+            (data['subtitle'] as String?) ?? '',
+            style: const TextStyle(
+              fontSize: 10,
+              color: Colors.grey,
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
     );
   }
 
+  Widget _buildProductImage(Map<String, dynamic> data) {
+    final productName = (data['title'] as String?) ?? '';
+    
+    // Eğer bu bir ürün ise resim göster, değilse ikon göster
+    if (productName.isNotEmpty && productName != 'Ortam Koşulları' && productName != 'Ortam Önerisi') {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(4),
+        child:           Image.network(
+            ImageService().getProductImage(productName),
+          width: 24,
+          height: 24,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return Icon(
+              (data['icon'] as IconData?) ?? Icons.eco,
+              color: (data['color'] as Color?) ?? AppTheme.primaryColor,
+              size: 20,
+            );
+          },
+          loadingBuilder: (context, child, loadingProgress) {
+            if (loadingProgress == null) return child;
+            return SizedBox(
+              width: 24,
+              height: 24,
+              child: Center(
+                child: SizedBox(
+                  width: 12,
+                  height: 12,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 1,
+                    value: loadingProgress.expectedTotalBytes != null
+                        ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                        : null,
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      );
+    } else {
+      return Icon(
+        (data['icon'] as IconData?) ?? Icons.eco,
+        color: (data['color'] as Color?) ?? AppTheme.primaryColor,
+        size: 20,
+      );
+    }
+  }
 
+  Widget _buildEmptyCard() {
+    return Container(
+      height: 90,
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: Colors.grey[300]!,
+          width: 1,
+        ),
+      ),
+      child: const Center(
+        child: Text(
+          'Veri yok',
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Show notifications dialog
   void _showNotifications() {
     // Bildirimi okundu olarak işaretle ve kalıcı olarak kaydet
     _markNotificationAsSeen();
@@ -1172,6 +1337,17 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-
-
+  // Find best product for environment data
+  Map<String, dynamic> _findBestProductForEnvironment(Map<String, dynamic> data) {
+    // Bu fonksiyon ortam verilerine göre en uygun ürünü bulur
+    // Şimdilik basit bir implementasyon
+    return {
+      'title': 'ML Önerisi',
+      'subtitle': 'Yüksek Güven Skoru',
+      'confidence': 0.85,
+      'category': 'ML Önerisi',
+      'icon': Icons.eco,
+      'color': AppTheme.primaryColor,
+    };
+  }
 }

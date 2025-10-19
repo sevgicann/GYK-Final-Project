@@ -13,6 +13,7 @@ class CustomButton extends StatelessWidget {
   final double? width;
   final double? height;
   final EdgeInsetsGeometry? padding;
+  final Color? backgroundColor;
 
   const CustomButton({
     super.key,
@@ -25,6 +26,7 @@ class CustomButton extends StatelessWidget {
     this.width,
     this.height,
     this.padding,
+    this.backgroundColor,
   });
 
   @override
@@ -114,7 +116,7 @@ class CustomButton extends StatelessWidget {
     switch (type) {
       case ButtonType.primary:
         return ElevatedButton.styleFrom(
-          backgroundColor: AppTheme.primaryColor,
+          backgroundColor: backgroundColor ?? AppTheme.primaryColor,
           foregroundColor: AppTheme.surfaceColor,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppTheme.borderRadius),

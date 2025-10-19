@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../core/theme/app_theme.dart';
 import '../core/validation/validators.dart';
 import '../core/navigation/app_router.dart';
@@ -17,6 +19,7 @@ import '../services/image_service.dart';
 import '../services/location_service.dart';
 import '../services/my_products_service.dart';
 import '../services/my_environments_service.dart';
+import '../services/pdf_service.dart';
 import '../models/product.dart';
 import '../data/turkish_cities.dart';
 
@@ -503,6 +506,9 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
             // Ortam verilerini kaydet
             await _saveEnvironmentDataToMyEnvironments();
             
+            // History'ye ortam→ürün önerisini kaydet
+            await _saveEnvironmentProductRecommendation(mlRecommendedProducts, mlConfidenceScores);
+            
               // Başarı mesaj sonuçları göster
               if (_scaffoldMessenger != null) {
                 _scaffoldMessenger!.showSnackBar(
@@ -541,6 +547,64 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
           });
         }
       }
+    }
+  }
+
+  // Ortam koşullarından ürün önerisini SharedPreferences'a kaydet
+  Future<void> _saveEnvironmentProductRecommendation(List<Product> products, List<double> confidenceScores) async {
+    if (products.isEmpty) return;
+    
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      
+      // En yüksek güven skorlu ürünü bul
+      final bestProductIndex = confidenceScores.indexOf(confidenceScores.reduce((a, b) => a > b ? a : b));
+      final bestProduct = products[bestProductIndex];
+      final bestConfidence = confidenceScores[bestProductIndex];
+      
+      // Ortam→ürün önerisi verilerini hazırla
+      final environmentProductData = {
+        'timestamp': DateTime.now().toIso8601String(),
+        'type': 'environment_to_product',
+        'environment': {
+          'region': _selectedRegion ?? 'Bilinmeyen',
+          'soilType': _selectedSoilType ?? 'Bilinmeyen',
+          'fertilizer': _selectedFertilizer ?? 'Bilinmeyen',
+          'irrigation': _selectedIrrigation ?? 'Bilinmeyen',
+          'sunlight': _selectedSunlight ?? 'Bilinmeyen',
+          'city': _selectedCity ?? 'Bilinmeyen',
+          'ph': _phController.text.isNotEmpty ? _phController.text : '6.5',
+          'nitrogen': _nitrogenController.text.isNotEmpty ? _nitrogenController.text : '120',
+          'phosphorus': _phosphorusController.text.isNotEmpty ? _phosphorusController.text : '60',
+          'potassium': _potassiumController.text.isNotEmpty ? _potassiumController.text : '225',
+          'humidity': _humidityController.text.isNotEmpty ? _humidityController.text : '26',
+          'temperature': _temperatureController.text.isNotEmpty ? _temperatureController.text : '23',
+          'rainfall': _rainfallController.text.isNotEmpty ? _rainfallController.text : '850',
+        },
+        'product': {
+          'name': bestProduct.name,
+          'category': bestProduct.category,
+          'confidence': bestConfidence,
+        },
+      };
+      
+      // Mevcut geçmişi al
+      final existingHistory = prefs.getStringList('environment_product_history') ?? [];
+      
+      // Yeni veriyi ekle
+      existingHistory.insert(0, json.encode(environmentProductData));
+      
+      // Son 10 kaydı tut
+      if (existingHistory.length > 10) {
+        existingHistory.removeRange(10, existingHistory.length);
+      }
+      
+      // Kaydet
+      await prefs.setStringList('environment_product_history', existingHistory);
+      
+      print('✅ Environment product recommendation saved to history');
+    } catch (e) {
+      print('❌ Error saving environment product recommendation: $e');
     }
   }
 
@@ -1342,7 +1406,7 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
   }
 
   void _handleGpsLocation() async {
-    // Get REAL GPS location
+    // Show loading message
     if (_scaffoldMessenger != null) {
       _scaffoldMessenger!.showSnackBar(
         const SnackBar(
@@ -1352,21 +1416,22 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
       );
     }
     
-    // Get real GPS location
     try {
+      // Get real GPS location using geolocator
       final locationData = await _locationService.getCurrentLocation();
       
       if (mounted) {
         if (locationData['success'] == true) {
+          // GPS location successfully obtained
           setState(() {
             _selectedCity = locationData['city'];
             _selectedRegion = locationData['region'];
             _isGpsSelected = true;
             _isManualSelected = false;
           });
-          _onFieldChanged(); // Form validasyonunu güncelle
+          _onFieldChanged(); // Update form validation
           
-          // Backend'e konum bilgilerini gönder
+          // Send location data to backend
           try {
             await _recommendationService.saveLocationData(
               locationType: 'gps',
@@ -1400,7 +1465,7 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
             }
           }
         } else {
-          // GPS failed
+          // GPS failed - show error with manual option
           if (mounted && _scaffoldMessenger != null) {
             _scaffoldMessenger!.showSnackBar(
               SnackBar(
@@ -1409,7 +1474,7 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
                   style: const TextStyle(color: Colors.white),
                 ),
                 backgroundColor: AppTheme.errorColor,
-                duration: const Duration(seconds: 4),
+                duration: const Duration(seconds: 5),
                 action: SnackBarAction(
                   label: 'Manuel Seç',
                   textColor: Colors.white,
@@ -1418,6 +1483,7 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
                       _isManualSelected = true;
                       _isGpsSelected = false;
                     });
+                    _showCitySelectionDialog();
                   },
                 ),
               ),
@@ -1435,6 +1501,18 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
               style: const TextStyle(color: Colors.white),
             ),
             backgroundColor: AppTheme.errorColor,
+            duration: const Duration(seconds: 4),
+            action: SnackBarAction(
+              label: 'Manuel Seç',
+              textColor: Colors.white,
+              onPressed: () {
+                setState(() {
+                  _isManualSelected = true;
+                  _isGpsSelected = false;
+                });
+                _showCitySelectionDialog();
+              },
+            ),
           ),
         );
       }
@@ -1829,6 +1907,9 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
       );
       
       print('Added ${product.name} to My Products');
+      
+      // Navigate to My Products page
+      Navigator.pushNamed(context, '/my-products');
     } catch (e) {
       // Show error message
       ScaffoldMessenger.of(context).showSnackBar(
@@ -2029,4 +2110,6 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
       return Colors.red; // Düşük güven
     }
   }
+
+
 }

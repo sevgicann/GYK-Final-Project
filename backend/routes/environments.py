@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from models.environment import Environment, EnvironmentData
-from models.user import User
+# User will be imported from app
 from flask import current_app
 from datetime import datetime
 
@@ -13,6 +13,7 @@ def get_user_environments():
     """Get all environments for the current user"""
     try:
         user_id = get_jwt_identity()
+        from app import User
         user = User.find_by_id(user_id)
         
         if not user:
@@ -43,6 +44,7 @@ def create_environment():
     """Create a new environment"""
     try:
         user_id = get_jwt_identity()
+        from app import User
         user = User.find_by_id(user_id)
         
         if not user:

@@ -1,5 +1,5 @@
 version: '3.8'
-
+ 
 services:
   backend:
     build:
@@ -18,7 +18,7 @@ services:
       - ./uploads:/app/uploads
       - ./logs:/app/logs
     restart: unless-stopped
-
+ 
   db:
     image: postgres:15-alpine
     environment:
@@ -48,7 +48,7 @@ services:
       -c work_mem=4MB
       -c min_wal_size=1GB
       -c max_wal_size=4GB
-
+ 
   redis:
     image: redis:7-alpine
     ports:
@@ -58,24 +58,34 @@ services:
       - ./redis.conf:/usr/local/etc/redis/redis.conf
     command: redis-server /usr/local/etc/redis/redis.conf
     restart: unless-stopped
-
+ 
   frontend:
     build: ../frontend
-    ports:
-      - "3000:3000"
     depends_on:
       - backend
     restart: unless-stopped
     environment:
-      - API_BASE_URL=http://backend:5000
+      - API_BASE_URL=http://api.terramind.online
     volumes:
       - ../frontend:/app
       - /app/build
-
-# Nginx removed - Flutter web server handles everything directly
-
+  caddy:
+    image: caddy:latest
+    container_name: caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ../caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+      - backend
+ 
 volumes:
   postgres_data:
   redis_data:
-
-
+  caddy_data:
+  caddy_config:

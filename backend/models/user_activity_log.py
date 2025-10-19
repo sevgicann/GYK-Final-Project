@@ -1,4 +1,4 @@
-from app import db
+# db will be imported from app when needed
 from datetime import datetime
 import uuid
 import json
