@@ -298,4 +298,89 @@ class RecommendationService {
       throw Exception('ML tabanlı ürün önerileri alınırken hata oluştu: $e');
     }
   }
+
+  /// Get average soil data based on environmental conditions
+  Future<Map<String, dynamic>> getAverageSoilData({
+    String? soilType,
+    String? region,
+    String? fertilizerType,
+    String? irrigationMethod,
+    String? weatherCondition,
+  }) async {
+    try {
+      print('🌱 Getting average soil data...');
+      print('📊 Environmental Conditions:');
+      print('  - Soil Type: ${soilType ?? "Not specified"}');
+      print('  - Region: ${region ?? "Not specified"}');
+      print('  - Fertilizer Type: ${fertilizerType ?? "Not specified"}');
+      print('  - Irrigation Method: ${irrigationMethod ?? "Not specified"}');
+      print('  - Weather Condition: ${weatherCondition ?? "Not specified"}');
+      
+      // Build query parameters
+      final Map<String, String> queryParams = {};
+      if (soilType != null && soilType.isNotEmpty) {
+        queryParams['soil_type'] = soilType;
+      }
+      if (region != null && region.isNotEmpty) {
+        queryParams['region'] = region;
+      }
+      if (fertilizerType != null && fertilizerType.isNotEmpty) {
+        queryParams['fertilizer_type'] = fertilizerType;
+      }
+      if (irrigationMethod != null && irrigationMethod.isNotEmpty) {
+        queryParams['irrigation_method'] = irrigationMethod;
+      }
+      if (weatherCondition != null && weatherCondition.isNotEmpty) {
+        queryParams['weather_condition'] = weatherCondition;
+      }
+      
+      final response = await _apiService.get(
+        '${ApiConfig.recommendationsEndpoint}/average-soil-data',
+        queryParams: queryParams,
+        requireAuth: true, // Use authentication
+      );
+
+      print('✅ Average soil data retrieved successfully');
+      return response;
+    } catch (e) {
+      print('❌ Error getting average soil data: $e');
+      rethrow;
+    }
+  }
+
+  /// Get all available average soil data combinations
+  Future<Map<String, dynamic>> getAllAverageSoilData() async {
+    try {
+      print('🌱 Getting all average soil data...');
+      
+      final response = await _apiService.get(
+        '${ApiConfig.recommendationsEndpoint}/average-soil-data/all',
+        requireAuth: false, // This endpoint doesn't require authentication
+      );
+
+      print('✅ All average soil data retrieved successfully');
+      return response;
+    } catch (e) {
+      print('❌ Error getting all average soil data: $e');
+      rethrow;
+    }
+  }
+
+  /// Refresh average soil data from database
+  Future<Map<String, dynamic>> refreshAverageSoilData() async {
+    try {
+      print('🔄 Refreshing average soil data...');
+      
+      final response = await _apiService.post(
+        '${ApiConfig.recommendationsEndpoint}/average-soil-data/refresh',
+        requireAuth: true,
+      );
+
+      print('✅ Average soil data refreshed successfully');
+      return response;
+    } catch (e) {
+      print('❌ Error refreshing average soil data: $e');
+      rethrow;
+    }
+  }
 }

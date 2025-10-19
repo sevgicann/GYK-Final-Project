@@ -51,6 +51,11 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
   bool _isManualEntry = false;
   bool _useAverageValues = false;
 
+  // Form validation states
+  Map<String, String?> _fieldErrors = {};
+  bool _isFormValid = false;
+  bool _hasAttemptedSubmit = false; // Butona tıklanıp tıklanmadığını takip et
+
   final RecommendationService _recommendationService = RecommendationService();
   final RegionService _regionService = RegionService();
   final ImageService _imageService = ImageService();
@@ -66,10 +71,14 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
   void initState() {
     super.initState();
     _isManualSelected = true;
-    _useAverageValues = true;
+    _isManualEntry = true; // Manuel giriş varsayılan olarak aktif
+    _useAverageValues = false; // Ortalama değerler inaktif
     
     // Ortalama değerleri doldur
     _fillAverageValues();
+    
+    // Form validasyonunu başlat
+    _validateForm();
   }
 
   @override
@@ -80,13 +89,8 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
 
   void _fillAverageValues() {
     if (_useAverageValues) {
-      _phController.text = '6.5';
-      _nitrogenController.text = '120';
-      _phosphorusController.text = '60';
-      _potassiumController.text = '225';
-      _humidityController.text = '26';
-      _temperatureController.text = '23';
-      _rainfallController.text = '850';
+      // Backend'den dinamik ortalama değerleri çek
+      _loadAverageSoilData();
     } else {
       // Manuel giriş için değerleri temizle ama placeholder'lar görünecek
       _phController.clear();
@@ -97,6 +101,248 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
       _temperatureController.clear();
       _rainfallController.clear();
     }
+  }
+
+  Future<void> _loadAverageSoilData() async {
+    try {
+      print('🌱 Loading average soil data...');
+      
+      // Şimdilik çevre koşullarına göre basit ortalama değerler kullan
+      Map<String, double> averageValues = _getAverageValuesForConditions(
+        soilType: _selectedSoilType,
+        region: _selectedRegion,
+        fertilizerType: _selectedFertilizer,
+        irrigationMethod: _selectedIrrigation,
+        weatherCondition: _selectedSunlight,
+      );
+      
+      print('📊 Average soil data calculated:');
+      print('  - pH: ${averageValues['ph']}');
+      print('  - Nitrogen: ${averageValues['nitrogen']}');
+      print('  - Phosphorus: ${averageValues['phosphorus']}');
+      print('  - Potassium: ${averageValues['potassium']}');
+      print('  - Moisture: ${averageValues['moisture']}');
+      print('  - Temperature: ${averageValues['temperature']}');
+      print('  - Rainfall: ${averageValues['rainfall']}');
+      
+      // Değerleri form alanlarına doldur
+      if (mounted) {
+        setState(() {
+          _phController.text = averageValues['ph']?.toString() ?? '6.5';
+          _nitrogenController.text = averageValues['nitrogen']?.toString() ?? '120';
+          _phosphorusController.text = averageValues['phosphorus']?.toString() ?? '60';
+          _potassiumController.text = averageValues['potassium']?.toString() ?? '225';
+          _humidityController.text = averageValues['moisture']?.toString() ?? '26';
+          _temperatureController.text = averageValues['temperature']?.toString() ?? '23';
+          _rainfallController.text = averageValues['rainfall']?.toString() ?? '850';
+        });
+        
+        // Başarı mesajı göster
+        if (_scaffoldMessenger != null) {
+          _scaffoldMessenger!.showSnackBar(
+            SnackBar(
+              content: Text(
+                'Ortalama değerler yüklendi (${_selectedRegion ?? "Genel"} bölgesi)',
+                style: const TextStyle(color: Colors.white),
+              ),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('❌ Error loading average soil data: $e');
+      
+      // Hata durumunda varsayılan değerleri kullan
+      if (mounted) {
+        setState(() {
+          _phController.text = '6.5';
+          _nitrogenController.text = '120';
+          _phosphorusController.text = '60';
+          _potassiumController.text = '225';
+          _humidityController.text = '26';
+          _temperatureController.text = '23';
+          _rainfallController.text = '850';
+        });
+        
+        if (_scaffoldMessenger != null) {
+          _scaffoldMessenger!.showSnackBar(
+            SnackBar(
+              content: Text(
+                'Ortalama veriler yüklenemedi, varsayılan değerler kullanılıyor',
+                style: const TextStyle(color: Colors.white),
+              ),
+              backgroundColor: AppTheme.errorColor,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  Map<String, double> _getAverageValuesForConditions({
+    String? soilType,
+    String? region,
+    String? fertilizerType,
+    String? irrigationMethod,
+    String? weatherCondition,
+  }) {
+    // Bölgeye göre temel değerler
+    Map<String, Map<String, double>> regionValues = {
+      'İç Anadolu': {
+        'ph': 7.2, 'nitrogen': 110, 'phosphorus': 55, 'potassium': 200,
+        'moisture': 22, 'temperature': 25, 'rainfall': 400
+      },
+      'Marmara': {
+        'ph': 6.8, 'nitrogen': 130, 'phosphorus': 65, 'potassium': 250,
+        'moisture': 28, 'temperature': 22, 'rainfall': 700
+      },
+      'Ege': {
+        'ph': 7.0, 'nitrogen': 125, 'phosphorus': 60, 'potassium': 230,
+        'moisture': 25, 'temperature': 24, 'rainfall': 600
+      },
+      'Akdeniz': {
+        'ph': 7.5, 'nitrogen': 140, 'phosphorus': 70, 'potassium': 280,
+        'moisture': 30, 'temperature': 26, 'rainfall': 800
+      },
+      'Karadeniz': {
+        'ph': 6.5, 'nitrogen': 150, 'phosphorus': 75, 'potassium': 300,
+        'moisture': 35, 'temperature': 20, 'rainfall': 1200
+      },
+      'Doğu Anadolu': {
+        'ph': 7.8, 'nitrogen': 100, 'phosphorus': 50, 'potassium': 180,
+        'moisture': 20, 'temperature': 18, 'rainfall': 300
+      },
+      'Güneydoğu Anadolu': {
+        'ph': 8.0, 'nitrogen': 90, 'phosphorus': 45, 'potassium': 160,
+        'moisture': 18, 'temperature': 28, 'rainfall': 250
+      },
+    };
+    
+    // Varsayılan değerler
+    Map<String, double> defaultValues = {
+      'ph': 6.5, 'nitrogen': 120, 'phosphorus': 60, 'potassium': 225,
+      'moisture': 26, 'temperature': 23, 'rainfall': 850
+    };
+    
+    // Bölgeye göre değerleri al
+    Map<String, double> baseValues = regionValues[region] ?? defaultValues;
+    
+    // Toprak tipine göre ayarlamalar
+    if (soilType == 'Killi Toprak') {
+      baseValues['ph'] = (baseValues['ph']! + 0.3).clamp(6.0, 8.5);
+      baseValues['nitrogen'] = (baseValues['nitrogen']! * 1.1).roundToDouble();
+    } else if (soilType == 'Kumlu Toprak') {
+      baseValues['ph'] = (baseValues['ph']! - 0.2).clamp(6.0, 8.5);
+      baseValues['nitrogen'] = (baseValues['nitrogen']! * 0.9).roundToDouble();
+    } else if (soilType == 'Asitli Toprak') {
+      baseValues['ph'] = (baseValues['ph']! - 0.5).clamp(5.0, 7.0);
+    }
+    
+    // Gübre tipine göre ayarlamalar
+    if (fertilizerType == 'Organik Gübre') {
+      baseValues['nitrogen'] = (baseValues['nitrogen']! * 1.2).roundToDouble();
+      baseValues['phosphorus'] = (baseValues['phosphorus']! * 1.1).roundToDouble();
+    }
+    
+    // Sulama yöntemine göre ayarlamalar
+    if (irrigationMethod == 'Damla Sulama') {
+      baseValues['moisture'] = (baseValues['moisture']! * 1.1).clamp(15.0, 40.0);
+    }
+    
+    return baseValues;
+  }
+
+  /// Form validasyonu yap
+  void _validateForm() {
+    Map<String, String?> errors = {};
+    bool isValid = true;
+
+    // Zorunlu çevre verilerini kontrol et
+    if (_selectedRegion == null || _selectedRegion!.isEmpty) {
+      errors['region'] = 'Bölge seçiniz';
+      isValid = false;
+    }
+
+    if (_selectedSoilType == null || _selectedSoilType!.isEmpty) {
+      errors['soilType'] = 'Toprak tipi seçiniz';
+      isValid = false;
+    }
+
+    if (_selectedFertilizer == null || _selectedFertilizer!.isEmpty) {
+      errors['fertilizer'] = 'Gübre tipi seçiniz';
+      isValid = false;
+    }
+
+    if (_selectedIrrigation == null || _selectedIrrigation!.isEmpty) {
+      errors['irrigation'] = 'Sulama yöntemi seçiniz';
+      isValid = false;
+    }
+
+    if (_selectedSunlight == null || _selectedSunlight!.isEmpty) {
+      errors['sunlight'] = 'Güneş ışığı durumu seçiniz';
+      isValid = false;
+    }
+
+    // Konum kontrolü
+    if (!_isGpsSelected && !_isManualSelected) {
+      errors['location'] = 'Konum seçiniz (GPS veya Manuel)';
+      isValid = false;
+    }
+
+    if (_isManualSelected && (_selectedCity == null || _selectedCity!.isEmpty)) {
+      errors['city'] = 'Şehir seçiniz';
+      isValid = false;
+    }
+
+    // Toprak parametreleri kontrolü (sadece manuel giriş seçiliyse)
+    if (_isManualEntry && !_useAverageValues) {
+      if (_phController.text.isEmpty) {
+        errors['ph'] = 'pH değeri giriniz';
+        isValid = false;
+      }
+      if (_nitrogenController.text.isEmpty) {
+        errors['nitrogen'] = 'Azot değeri giriniz';
+        isValid = false;
+      }
+      if (_phosphorusController.text.isEmpty) {
+        errors['phosphorus'] = 'Fosfor değeri giriniz';
+        isValid = false;
+      }
+      if (_potassiumController.text.isEmpty) {
+        errors['potassium'] = 'Potasyum değeri giriniz';
+        isValid = false;
+      }
+      if (_humidityController.text.isEmpty) {
+        errors['humidity'] = 'Nem değeri giriniz';
+        isValid = false;
+      }
+      if (_temperatureController.text.isEmpty) {
+        errors['temperature'] = 'Sıcaklık değeri giriniz';
+        isValid = false;
+      }
+      if (_rainfallController.text.isEmpty) {
+        errors['rainfall'] = 'Yağış değeri giriniz';
+        isValid = false;
+      }
+    }
+
+    setState(() {
+      _fieldErrors = errors;
+      _isFormValid = isValid;
+    });
+  }
+
+  /// Belirli bir alanın hata mesajını al (sadece butona tıklandıktan sonra)
+  String? _getFieldError(String fieldName) {
+    return _hasAttemptedSubmit ? _fieldErrors[fieldName] : null;
+  }
+
+  /// Alan değişikliğinde validasyon yap
+  void _onFieldChanged() {
+    _validateForm();
   }
 
   @override
@@ -112,6 +358,24 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
   }
 
   Future<void> _handleGetProductRecommendation() async {
+    // Butona tıklandığını işaretle
+    setState(() {
+      _hasAttemptedSubmit = true;
+    });
+    
+    // Form validasyonunu kontrol et
+    if (!_isFormValid) {
+      if (_scaffoldMessenger != null) {
+        _scaffoldMessenger!.showSnackBar(
+          const SnackBar(
+            content: Text('Lütfen tüm zorunlu alanları doldurun'),
+            backgroundColor: AppTheme.errorColor,
+          ),
+        );
+      }
+      return;
+    }
+
     // Eğer manuel giriş seçiliyse ve değerler boşsa, ortalama değerleri kullan
     if (_isManualEntry && _phController.text.isEmpty) {
       if (_scaffoldMessenger != null) {
@@ -389,6 +653,7 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
                     _isGpsSelected = true;
                     _isManualSelected = false;
                   });
+                  _onFieldChanged(); // Form validasyonunu güncelle
                   _handleGpsLocation();
                 },
               ),
@@ -402,10 +667,17 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
                     _isGpsSelected = false;
                     _isManualSelected = true;
                   });
+                  _onFieldChanged(); // Form validasyonunu güncelle
                   _showCitySelectionDialog();
                 },
               ),
             ],
+          ),
+          
+          // Konum hata mesajı
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: _buildFieldError('location'),
           ),
         ],
       ),
@@ -440,13 +712,23 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
                     _selectedRegion = value;
                   });
                   
+                  // Form validasyonunu güncelle
+                  _onFieldChanged();
+                  
                   // Backend'e çevre verilerini gönder (sadece bölge değiştiğinde)
                   if (value != null) {
                     _saveEnvironmentData();
+                    
+                    // Ortalama değerler kullanılıyorsa, yeni bölge için ortalama değerleri yükle
+                    if (_useAverageValues) {
+                      _loadAverageSoilData();
+                    }
                   }
                 },
               ),
             ),
+            // Bölge hata mesajı
+            _buildFieldError('region'),
             const SizedBox(width: AppTheme.paddingMedium),
             Expanded(
               child: CustomDropdown<String>(
@@ -459,13 +741,23 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
                     _selectedSoilType = value;
                   });
                   
+                  // Form validasyonunu güncelle
+                  _onFieldChanged();
+                  
                   // Backend'e çevre verilerini gönder (sadece region varsa)
                   if (_selectedRegion != null) {
                     _saveEnvironmentData();
+                    
+                    // Ortalama değerler kullanılıyorsa, yeni toprak tipi için ortalama değerleri yükle
+                    if (_useAverageValues) {
+                      _loadAverageSoilData();
+                    }
                   }
                 },
               ),
             ),
+            // Toprak tipi hata mesajı
+            _buildFieldError('soilType'),
             const SizedBox(width: AppTheme.paddingMedium),
             Expanded(
               child: CustomDropdown<String>(
@@ -478,13 +770,23 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
                     _selectedFertilizer = value;
                   });
                   
+                  // Form validasyonunu güncelle
+                  _onFieldChanged();
+                  
                   // Backend'e çevre verilerini gönder (sadece region varsa)
                   if (_selectedRegion != null) {
                     _saveEnvironmentData();
+                    
+                    // Ortalama değerler kullanılıyorsa, yeni gübre tipi için ortalama değerleri yükle
+                    if (_useAverageValues) {
+                      _loadAverageSoilData();
+                    }
                   }
                 },
               ),
             ),
+            // Gübre hata mesajı
+            _buildFieldError('fertilizer'),
           ],
         ),
         
@@ -504,9 +806,17 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
                     _selectedIrrigation = value;
                   });
                   
+                  // Form validasyonunu güncelle
+                  _onFieldChanged();
+                  
                   // Backend'e çevre verilerini gönder (sadece region varsa)
                   if (_selectedRegion != null) {
                     _saveEnvironmentData();
+                    
+                    // Ortalama değerler kullanılıyorsa, yeni sulama yöntemi için ortalama değerleri yükle
+                    if (_useAverageValues) {
+                      _loadAverageSoilData();
+                    }
                   }
                 },
               ),
@@ -523,13 +833,32 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
                     _selectedSunlight = value;
                   });
                   
+                  // Form validasyonunu güncelle
+                  _onFieldChanged();
+                  
                   // Backend'e çevre verilerini gönder (sadece region varsa)
                   if (_selectedRegion != null) {
                     _saveEnvironmentData();
+                    
+                    // Ortalama değerler kullanılıyorsa, yeni güneş ışığı durumu için ortalama değerleri yükle
+                    if (_useAverageValues) {
+                      _loadAverageSoilData();
+                    }
                   }
                 },
               ),
             ),
+            const SizedBox(width: AppTheme.paddingMedium),
+            const Expanded(child: SizedBox()), // Boş alan
+          ],
+        ),
+        
+        // İkinci satır hata mesajları
+        Row(
+          children: [
+            Expanded(child: _buildFieldError('irrigation')),
+            const SizedBox(width: AppTheme.paddingMedium),
+            Expanded(child: _buildFieldError('sunlight')),
             const SizedBox(width: AppTheme.paddingMedium),
             const Expanded(child: SizedBox()), // Boş alan
           ],
@@ -586,6 +915,7 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
                       _isManualEntry = true;
                       _useAverageValues = false;
                     });
+                    _onFieldChanged(); // Form validasyonunu güncelle
                     _fillAverageValues();
                     
                     // Backend'e toprak verilerini gönder
@@ -601,11 +931,32 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
                   text: 'Ortalama Değerleri Kullan',
                   icon: Icons.trending_up,
                   onPressed: () async {
+                    // Çevre koşulları kontrolü
+                    if (_selectedRegion == null || _selectedRegion!.isEmpty ||
+                        _selectedSoilType == null || _selectedSoilType!.isEmpty ||
+                        _selectedFertilizer == null || _selectedFertilizer!.isEmpty ||
+                        _selectedIrrigation == null || _selectedIrrigation!.isEmpty ||
+                        _selectedSunlight == null || _selectedSunlight!.isEmpty) {
+                      
+                      if (_scaffoldMessenger != null) {
+                        _scaffoldMessenger!.showSnackBar(
+                          const SnackBar(
+                            content: Text('Ortalama değerleri kullanmak için önce çevre koşullarını doldurunuz'),
+                            backgroundColor: AppTheme.errorColor,
+                          ),
+                        );
+                      }
+                      return;
+                    }
+                    
                     setState(() {
-                      _isManualEntry = false;
+                      _isManualEntry = false; // Manuel giriş inaktif olsun
                       _useAverageValues = true;
                     });
-                    _fillAverageValues();
+                    _onFieldChanged(); // Form validasyonunu güncelle
+                    
+                    // Backend'den dinamik ortalama değerleri yükle
+                    await _loadAverageSoilData();
                     
                     // Backend'e toprak verilerini gönder
                     await _saveSoilData();
@@ -660,94 +1011,180 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
             desktop: 16,
           ),
           children: [
-            CustomTextField(
-              controller: _phController,
-              label: 'pH',
-              hint: 'pH',
-              keyboardType: TextInputType.number,
-              validator: (value) => Validators.range(value, 4.0, 9.0, 'pH'),
-              onChanged: (value) {
-                if (value.isNotEmpty) {
-                  _saveSoilData();
-                }
-              },
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CustomTextField(
+                  controller: _phController,
+                  label: 'pH',
+                  hint: 'pH',
+                  keyboardType: TextInputType.number,
+                  validator: (value) => Validators.range(value, 4.0, 9.0, 'pH'),
+                  onChanged: (value) {
+                    _onFieldChanged(); // Form validasyonunu güncelle
+                    if (value.isNotEmpty) {
+                      _saveSoilData();
+                    }
+                  },
+                ),
+                _buildFieldError('ph'),
+              ],
             ),
-            CustomTextField(
-              controller: _nitrogenController,
-              label: 'Azot (ppm)',
-              hint: 'Azot (ppm)',
-              keyboardType: TextInputType.number,
-              validator: (value) => Validators.range(value, 0.0, 300.0, 'Azot'),
-              onChanged: (value) {
-                if (value.isNotEmpty) {
-                  _saveSoilData();
-                }
-              },
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CustomTextField(
+                  controller: _nitrogenController,
+                  label: 'Azot (ppm)',
+                  hint: 'Azot (ppm)',
+                  keyboardType: TextInputType.number,
+                  validator: (value) => Validators.range(value, 0.0, 300.0, 'Azot'),
+                  onChanged: (value) {
+                    _onFieldChanged(); // Form validasyonunu güncelle
+                    if (value.isNotEmpty) {
+                      _saveSoilData();
+                    }
+                  },
+                ),
+                _buildFieldError('nitrogen'),
+              ],
             ),
-            CustomTextField(
-              controller: _phosphorusController,
-              label: 'Fosfor (ppm)',
-              hint: 'Fosfor (ppm)',
-              keyboardType: TextInputType.number,
-              validator: (value) => Validators.range(value, 0.0, 150.0, 'Fosfor'),
-              onChanged: (value) {
-                if (value.isNotEmpty) {
-                  _saveSoilData();
-                }
-              },
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CustomTextField(
+                  controller: _phosphorusController,
+                  label: 'Fosfor (ppm)',
+                  hint: 'Fosfor (ppm)',
+                  keyboardType: TextInputType.number,
+                  validator: (value) => Validators.range(value, 0.0, 150.0, 'Fosfor'),
+                  onChanged: (value) {
+                    _onFieldChanged(); // Form validasyonunu güncelle
+                    if (value.isNotEmpty) {
+                      _saveSoilData();
+                    }
+                  },
+                ),
+                _buildFieldError('phosphorus'),
+              ],
             ),
-            CustomTextField(
-              controller: _potassiumController,
-              label: 'Potasyum (ppm)',
-              hint: 'Potasyum (ppm)',
-              keyboardType: TextInputType.number,
-              validator: (value) => Validators.range(value, 0.0, 400.0, 'Potasyum'),
-              onChanged: (value) {
-                if (value.isNotEmpty) {
-                  _saveSoilData();
-                }
-              },
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CustomTextField(
+                  controller: _potassiumController,
+                  label: 'Potasyum (ppm)',
+                  hint: 'Potasyum (ppm)',
+                  keyboardType: TextInputType.number,
+                  validator: (value) => Validators.range(value, 0.0, 400.0, 'Potasyum'),
+                  onChanged: (value) {
+                    _onFieldChanged(); // Form validasyonunu güncelle
+                    if (value.isNotEmpty) {
+                      _saveSoilData();
+                    }
+                  },
+                ),
+                _buildFieldError('potassium'),
+              ],
             ),
-            CustomTextField(
-              controller: _humidityController,
-              label: 'Nem %',
-              hint: 'Nem %',
-              keyboardType: TextInputType.number,
-              validator: (value) => Validators.range(value, 0.0, 100.0, 'Nem'),
-              onChanged: (value) {
-                if (value.isNotEmpty) {
-                  _saveSoilData();
-                }
-              },
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CustomTextField(
+                  controller: _humidityController,
+                  label: 'Nem %',
+                  hint: 'Nem %',
+                  keyboardType: TextInputType.number,
+                  validator: (value) => Validators.range(value, 0.0, 100.0, 'Nem'),
+                  onChanged: (value) {
+                    _onFieldChanged(); // Form validasyonunu güncelle
+                    if (value.isNotEmpty) {
+                      _saveSoilData();
+                    }
+                  },
+                ),
+                _buildFieldError('humidity'),
+              ],
             ),
-            CustomTextField(
-              controller: _temperatureController,
-              label: 'Sıcaklık °C',
-              hint: 'Sıcaklık °C',
-              keyboardType: TextInputType.number,
-              validator: (value) => Validators.range(value, -10.0, 45.0, 'Sıcaklık'),
-              onChanged: (value) {
-                if (value.isNotEmpty) {
-                  _saveSoilData();
-                }
-              },
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CustomTextField(
+                  controller: _temperatureController,
+                  label: 'Sıcaklık °C',
+                  hint: 'Sıcaklık °C',
+                  keyboardType: TextInputType.number,
+                  validator: (value) => Validators.range(value, -10.0, 45.0, 'Sıcaklık'),
+                  onChanged: (value) {
+                    _onFieldChanged(); // Form validasyonunu güncelle
+                    if (value.isNotEmpty) {
+                      _saveSoilData();
+                    }
+                  },
+                ),
+                _buildFieldError('temperature'),
+              ],
             ),
-            CustomTextField(
-              controller: _rainfallController,
-              label: 'Yağış mm',
-              hint: 'Yağış mm',
-              keyboardType: TextInputType.number,
-              validator: (value) => Validators.range(value, 0.0, 2000.0, 'Yağış'),
-              onChanged: (value) {
-                if (value.isNotEmpty) {
-                  _saveSoilData();
-                }
-              },
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CustomTextField(
+                  controller: _rainfallController,
+                  label: 'Yağış mm',
+                  hint: 'Yağış mm',
+                  keyboardType: TextInputType.number,
+                  validator: (value) => Validators.range(value, 0.0, 2000.0, 'Yağış'),
+                  onChanged: (value) {
+                    _onFieldChanged(); // Form validasyonunu güncelle
+                    if (value.isNotEmpty) {
+                      _saveSoilData();
+                    }
+                  },
+                ),
+                _buildFieldError('rainfall'),
+              ],
             ),
           ],
         ),
+        
       ],
     );
+  }
+
+  /// Hata mesajı chip'i oluştur
+  Widget _buildErrorChip(String message) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppTheme.errorColor.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.errorColor.withOpacity(0.3)),
+      ),
+      child: Text(
+        message,
+        style: const TextStyle(
+          color: AppTheme.errorColor,
+          fontSize: AppTheme.fontSizeSmall,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
+
+  /// Standart hata mesajı widget'ı oluştur
+  Widget _buildFieldError(String fieldName) {
+    return _getFieldError(fieldName) != null
+        ? Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              'Bu alanı doldurunuz',
+              style: const TextStyle(
+                color: AppTheme.errorColor,
+                fontSize: AppTheme.fontSizeSmall,
+              ),
+            ),
+          )
+        : const SizedBox.shrink();
   }
 
   Widget _buildGetRecommendationsButton() {
@@ -758,6 +1195,7 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
       isLoading: _isLoading,
       isFullWidth: true,
       height: 60,
+      type: ButtonType.primary,
     );
   }
 
@@ -926,6 +1364,7 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
             _isGpsSelected = true;
             _isManualSelected = false;
           });
+          _onFieldChanged(); // Form validasyonunu güncelle
           
           // Backend'e konum bilgilerini gönder
           try {
@@ -1061,6 +1500,7 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
                       _selectedCity = city;
                       _selectedRegion = TurkishCities.getRegionByCity(city);
                     });
+                    _onFieldChanged(); // Form validasyonunu güncelle
                     Navigator.of(context).pop();
                     
                     // Backend'e manuel konum bilgilerini gönder
