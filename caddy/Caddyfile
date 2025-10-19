@@ -1,0 +1,7 @@
+terramind.online {
+    reverse_proxy frontend:80
+}
+
+api.terramind.online {
+    reverse_proxy backend:5000
+}
