@@ -37,8 +37,8 @@ class MLService:
         logger.info("🤖 MLService singleton created")
     
     def initialize_models(self,
-                         xgboost_model_path: str = "models/crop_model.pkl",
-                         lightgbm_model_path: str = "models/sentetik_crop_model.pkl"):
+                         xgboost_model_path: str = "ai/models/crop_model.pkl",
+                         lightgbm_model_path: str = "ai/models/environment_model.pkl"):
         """
         Initialize all ML predictors
         

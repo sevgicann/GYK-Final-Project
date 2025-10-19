@@ -434,7 +434,7 @@ class _ProductSelectionPageState extends State<ProductSelectionPage> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                locationData['message'] ?? 'GPS konumu alınamadı',
+                (locationData['message'] as String?) ?? 'GPS konumu alınamadı',
                 style: const TextStyle(color: Colors.white),
               ),
               backgroundColor: AppTheme.errorColor,

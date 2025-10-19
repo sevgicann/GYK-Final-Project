@@ -1,7 +1,4 @@
-"""
-XGBoost Bi-Directional Predictor
-Based on models/model2.py - Implements crop recommendation with optimization
-"""
+
 import pickle
 import pandas as pd
 import numpy as np
@@ -20,7 +17,7 @@ class XGBoostCropPredictor(BasePredictor):
     - Crop → Environment: Optimization using differential evolution
     """
     
-    def __init__(self, model_path: str = "models/crop_model.pkl"):
+    def __init__(self, model_path: str = "ai/models/crop_model.pkl"):
         self.model_path = model_path
         self.model = None
         self.encoders = {}

@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from models.environment import Environment, EnvironmentData
 from models.user import User
-from app import db
+from flask import current_app
 from datetime import datetime
 
 environments_bp = Blueprint('environments', __name__)
@@ -77,8 +77,8 @@ def create_environment():
             longitude=data.get('longitude')
         )
         
-        db.session.add(environment)
-        db.session.commit()
+        current_app.extensions['sqlalchemy'].db.session.add(environment)
+        current_app.extensions['sqlalchemy'].db.session.commit()
         
         return jsonify({
             'success': True,
@@ -89,7 +89,7 @@ def create_environment():
         }), 201
         
     except Exception as e:
-        db.session.rollback()
+        current_app.extensions['sqlalchemy'].db.session.rollback()
         return jsonify({
             'success': False,
             'message': 'Failed to create environment',
@@ -172,7 +172,7 @@ def update_environment(environment_id):
         if 'longitude' in data:
             environment.longitude = data['longitude']
         
-        db.session.commit()
+        current_app.extensions['sqlalchemy'].db.session.commit()
         
         return jsonify({
             'success': True,
@@ -183,7 +183,7 @@ def update_environment(environment_id):
         }), 200
         
     except Exception as e:
-        db.session.rollback()
+        current_app.extensions['sqlalchemy'].db.session.rollback()
         return jsonify({
             'success': False,
             'message': 'Failed to update environment',
@@ -210,7 +210,7 @@ def delete_environment(environment_id):
         
         # Soft delete
         environment.is_active = False
-        db.session.commit()
+        current_app.extensions['sqlalchemy'].db.session.commit()
         
         return jsonify({
             'success': True,
@@ -218,7 +218,7 @@ def delete_environment(environment_id):
         }), 200
         
     except Exception as e:
-        db.session.rollback()
+        current_app.extensions['sqlalchemy'].db.session.rollback()
         return jsonify({
             'success': False,
             'message': 'Failed to delete environment',
@@ -271,8 +271,8 @@ def add_environment_data(environment_id):
             measured_at=datetime.fromisoformat(data.get('measured_at', datetime.utcnow().isoformat()))
         )
         
-        db.session.add(env_data)
-        db.session.commit()
+        current_app.extensions['sqlalchemy'].db.session.add(env_data)
+        current_app.extensions['sqlalchemy'].db.session.commit()
         
         return jsonify({
             'success': True,
@@ -283,7 +283,7 @@ def add_environment_data(environment_id):
         }), 201
         
     except Exception as e:
-        db.session.rollback()
+        current_app.extensions['sqlalchemy'].db.session.rollback()
         return jsonify({
             'success': False,
             'message': 'Failed to add environment data',

@@ -966,7 +966,7 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
             _scaffoldMessenger!.showSnackBar(
               SnackBar(
                 content: Text(
-                  locationData['message'] ?? 'GPS konumu alınamadı',
+                  (locationData['message'] as String?) ?? 'GPS konumu alınamadı',
                   style: const TextStyle(color: Colors.white),
                 ),
                 backgroundColor: AppTheme.errorColor,

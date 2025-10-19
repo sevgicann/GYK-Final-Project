@@ -1,6 +1,9 @@
 class ApiConfig {
-  // Backend API base URL
-  static const String baseUrl = 'http://localhost:5000';
+  // Backend API base URL - Docker environment aware
+  static const String baseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'http://localhost:5000',
+  );
   
   // API endpoints
   static const String authEndpoint = '$baseUrl/api/auth';

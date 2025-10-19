@@ -1,7 +1,6 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from models.user import User
-from app import db
 import re
 from utils.logger import log_api_call, get_logger, log_info, log_error, log_success
 
@@ -120,8 +119,9 @@ def register():
         )
         user.set_password(password)
         
+        db = current_app.extensions['sqlalchemy'].db
         db.session.add(user)
-        db.session.commit()
+        current_app.extensions['sqlalchemy'].db.session.commit()
         
         # Generate token
         token = user.generate_token()
@@ -147,7 +147,7 @@ def register():
         }), 201
         
     except Exception as e:
-        db.session.rollback()
+        current_app.extensions['sqlalchemy'].db.session.rollback()
         return jsonify({
             'success': False,
             'message': 'Registration failed',
@@ -303,7 +303,7 @@ def update_profile():
         if 'theme' in data:
             user.theme = data['theme']
         
-        db.session.commit()
+        current_app.extensions['sqlalchemy'].db.session.commit()
         
         return jsonify({
             'success': True,
@@ -314,7 +314,7 @@ def update_profile():
         }), 200
         
     except Exception as e:
-        db.session.rollback()
+        current_app.extensions['sqlalchemy'].db.session.rollback()
         return jsonify({
             'success': False,
             'message': 'Failed to update profile',
@@ -375,7 +375,7 @@ def change_password():
         
         # Update password
         user.set_password(new_password)
-        db.session.commit()
+        current_app.extensions['sqlalchemy'].db.session.commit()
         
         return jsonify({
             'success': True,
@@ -383,7 +383,7 @@ def change_password():
         }), 200
         
     except Exception as e:
-        db.session.rollback()
+        current_app.extensions['sqlalchemy'].db.session.rollback()
         return jsonify({
             'success': False,
             'message': 'Failed to change password',

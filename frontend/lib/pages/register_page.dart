@@ -115,7 +115,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
   Widget _buildLanguageSelector() {
     return DropdownButtonFormField<String>(
-      initialValue: _selectedLanguage,
+      value: _selectedLanguage,
       decoration: InputDecoration(
         labelText: Translations.get('select_language', _languageService.currentLanguage),
         prefixIcon: const Icon(

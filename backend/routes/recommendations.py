@@ -4,7 +4,7 @@ from models.recommendation import Recommendation
 from models.user import User
 from models.product import Product
 from models.environment import Environment
-from app import db
+from flask import current_app
 from datetime import datetime
 from utils.logger import log_api_call, get_logger, log_info, log_success
 from utils.i18n import adapt_request, adapt_response, get_field_options, detect_language
@@ -797,7 +797,7 @@ def generate_recommendations():
                         suggestions=f"Ensure proper soil preparation and follow recommended growing practices for {product.name}."
                     )
                     
-                    db.session.add(recommendation)
+                    current_app.extensions['sqlalchemy'].db.session.add(recommendation)
                     generated_recommendations.append(recommendation)
         
         elif recommendation_type == 'environment_to_product':
@@ -847,10 +847,10 @@ def generate_recommendations():
                         suggestions=f"Follow recommended growing practices for {product.name} and monitor environmental conditions regularly."
                     )
                     
-                    db.session.add(recommendation)
+                    current_app.extensions['sqlalchemy'].db.session.add(recommendation)
                     generated_recommendations.append(recommendation)
         
-        db.session.commit()
+        current_app.extensions['sqlalchemy'].db.session.commit()
         
         return jsonify({
             'success': True,
@@ -861,7 +861,7 @@ def generate_recommendations():
         }), 201
         
     except Exception as e:
-        db.session.rollback()
+        current_app.extensions['sqlalchemy'].db.session.rollback()
         return jsonify({
             'success': False,
             'message': 'Failed to generate recommendations',

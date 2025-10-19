@@ -286,7 +286,7 @@ class RecommendationService {
       final response = await _apiService.post(
         'http://localhost:5000/api/ml/predict-crop',
         body: mlRequestBody,
-        requireAuth: false, // ML endpoint doesn't require auth
+        requireAuth: true, // ML endpoint doesn't require auth
       );
 
       print('✅ ML recommendations received successfully');

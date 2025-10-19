@@ -2,7 +2,9 @@ version: '3.8'
 
 services:
   backend:
-    build: .
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
     ports:
       - "5000:5000"
     environment:
@@ -23,11 +25,29 @@ services:
       - POSTGRES_DB=terramind_db
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=pass.123
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=tr_TR.UTF-8 --lc-ctype=tr_TR.UTF-8
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
     ports:
       - "5432:5432"
     restart: unless-stopped
+    command: >
+      postgres
+      -c shared_preload_libraries=pg_stat_statements
+      -c pg_stat_statements.track=all
+      -c max_connections=200
+      -c shared_buffers=256MB
+      -c effective_cache_size=1GB
+      -c maintenance_work_mem=64MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+      -c work_mem=4MB
+      -c min_wal_size=1GB
+      -c max_wal_size=4GB
 
   redis:
     image: redis:7-alpine
@@ -35,19 +55,24 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
+      - ./redis.conf:/usr/local/etc/redis/redis.conf
+    command: redis-server /usr/local/etc/redis/redis.conf
     restart: unless-stopped
 
-  nginx:
-    image: nginx:alpine
+  frontend:
+    build: ../frontend
     ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf
-      - ./ssl:/etc/nginx/ssl
+      - "3000:3000"
     depends_on:
       - backend
     restart: unless-stopped
+    environment:
+      - API_BASE_URL=http://backend:5000
+    volumes:
+      - ../frontend:/app
+      - /app/build
+
+# Nginx removed - Flutter web server handles everything directly
 
 volumes:
   postgres_data:

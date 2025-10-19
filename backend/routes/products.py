@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from models.product import Product, ProductRequirements
 from models.user import User
-from app import db
+from flask import current_app
 
 products_bp = Blueprint('products', __name__)
 
@@ -24,7 +24,7 @@ def get_products():
         
         if search:
             query = query.filter(
-                db.or_(
+                current_app.extensions['sqlalchemy'].db.or_(
                     Product.name.ilike(f'%{search}%'),
                     Product.description.ilike(f'%{search}%')
                 )
@@ -271,8 +271,8 @@ def create_product():
             image_url=data.get('image_url')
         )
         
-        db.session.add(product)
-        db.session.flush()  # Get the product ID
+        current_app.extensions['sqlalchemy'].db.session.add(product)
+        current_app.extensions['sqlalchemy'].db.session.flush()  # Get the product ID
         
         # Create requirements if provided
         requirements_data = data.get('requirements')
@@ -296,9 +296,9 @@ def create_product():
                 notes=requirements_data.get('notes')
             )
             
-            db.session.add(requirements)
+            current_app.extensions['sqlalchemy'].db.session.add(requirements)
         
-        db.session.commit()
+        current_app.extensions['sqlalchemy'].db.session.commit()
         
         return jsonify({
             'success': True,
@@ -309,7 +309,7 @@ def create_product():
         }), 201
         
     except Exception as e:
-        db.session.rollback()
+        current_app.extensions['sqlalchemy'].db.session.rollback()
         return jsonify({
             'success': False,
             'message': 'Failed to create product',

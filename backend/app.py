@@ -25,7 +25,7 @@ ml_service = None
 
 # Configuration
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-secret-key-here')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///terramind.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'postgresql://postgres:pass.123@localhost:5432/terramind_db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'jwt-secret-string')
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=7)
@@ -52,12 +52,7 @@ limiter = Limiter(
     default_limits=["200 per day", "50 per hour"]
 )
 
-# Import models
-log_info("Importing database models")
-from models.user import User
-from models.product import Product, ProductRequirements
-from models.environment import Environment, EnvironmentData
-from models.recommendation import Recommendation
+# Models will be imported after app context is set
 
 # Import routes
 log_info("Importing API routes")
@@ -66,6 +61,18 @@ from routes.users import users_bp
 from routes.products import products_bp
 from routes.environments import environments_bp
 from routes.recommendations import recommendations_bp
+from routes.ml_endpoints import ml_bp
+from routes.product_selection import product_selection_bp
+
+# Register blueprints
+log_info("Registering API routes")
+app.register_blueprint(auth_bp, url_prefix='/api/auth')
+app.register_blueprint(users_bp, url_prefix='/api/users')
+app.register_blueprint(products_bp, url_prefix='/api/products')
+app.register_blueprint(environments_bp, url_prefix='/api/environments')
+app.register_blueprint(recommendations_bp, url_prefix='/api/recommendations')
+app.register_blueprint(ml_bp, url_prefix='/api/ml')
+app.register_blueprint(product_selection_bp, url_prefix='/api/product-selection')
 
 # Request logging middleware
 @app.before_request
@@ -117,21 +124,7 @@ def log_response(response):
     
     return response
 
-# Register blueprints
-log_info("Registering API blueprints")
-app.register_blueprint(auth_bp, url_prefix='/api/auth')
-app.register_blueprint(users_bp, url_prefix='/api/users')
-app.register_blueprint(products_bp, url_prefix='/api/products')
-app.register_blueprint(environments_bp, url_prefix='/api/environments')
-app.register_blueprint(recommendations_bp, url_prefix='/api/recommendations')
-
-# Import and register product selection blueprint
-from routes.product_selection import product_selection_bp
-app.register_blueprint(product_selection_bp, url_prefix='/api/product-selection')
-
-# Import and register ML endpoints blueprint
-from routes.ml_endpoints import ml_bp
-app.register_blueprint(ml_bp, url_prefix='/api/ml')
+# Blueprints are already registered above
 
 # Initialize ML Service
 def init_ml_service():
@@ -431,9 +424,26 @@ def missing_token_callback(error):
         'message': 'Authorization token is required'
     }), 401
 
-if __name__ == '__main__':
-    with app.app_context():
+# Initialize database and ML service when app starts
+with app.app_context():
+    try:
+        # Import models after app context is set
+        log_info("Importing database models")
+        from models.user import User
+        from models.product import Product, ProductRequirements
+        from models.environment import Environment, EnvironmentData
+        from models.recommendation import Recommendation
+        from models.model_results import ModelResult
+        from models.user_activity_log import UserActivityLog
+        
         db.create_all()
-        # Initialize ML service
-        init_ml_service()
+        # Initialize ML service - temporarily disabled
+        # init_ml_service()
+        
+        
+        log_success("Database, ML service and routes initialized successfully")
+    except Exception as e:
+        log_error(f"Failed to initialize database or ML service: {str(e)}")
+
+if __name__ == '__main__':
     app.run(debug=os.getenv('FLASK_ENV') == 'development', host='0.0.0.0', port=5000)

@@ -3,7 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from models.user import User
 from models.environment import Environment
 from models.recommendation import Recommendation
-from app import db
+from flask import current_app
 
 users_bp = Blueprint('users', __name__)
 
@@ -84,7 +84,7 @@ def update_profile():
         if 'theme' in data:
             user.theme = data['theme']
         
-        db.session.commit()
+        current_app.extensions['sqlalchemy'].db.session.commit()
         
         return jsonify({
             'success': True,
@@ -95,7 +95,7 @@ def update_profile():
         }), 200
         
     except Exception as e:
-        db.session.rollback()
+        current_app.extensions['sqlalchemy'].db.session.rollback()
         return jsonify({
             'success': False,
             'message': 'Failed to update profile',
@@ -242,7 +242,7 @@ def update_settings():
             if 'is_gps_enabled' in location:
                 user.is_gps_enabled = location['is_gps_enabled']
         
-        db.session.commit()
+        current_app.extensions['sqlalchemy'].db.session.commit()
         
         return jsonify({
             'success': True,
@@ -264,7 +264,7 @@ def update_settings():
         }), 200
         
     except Exception as e:
-        db.session.rollback()
+        current_app.extensions['sqlalchemy'].db.session.rollback()
         return jsonify({
             'success': False,
             'message': 'Failed to update settings',
@@ -287,7 +287,7 @@ def deactivate_account():
         
         # Deactivate account
         user.is_active = False
-        db.session.commit()
+        current_app.extensions['sqlalchemy'].db.session.commit()
         
         return jsonify({
             'success': True,
@@ -295,7 +295,7 @@ def deactivate_account():
         }), 200
         
     except Exception as e:
-        db.session.rollback()
+        current_app.extensions['sqlalchemy'].db.session.rollback()
         return jsonify({
             'success': False,
             'message': 'Failed to deactivate account',

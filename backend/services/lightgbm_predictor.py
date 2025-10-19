@@ -1,7 +1,4 @@
-"""
-LightGBM Bi-Directional Predictor
-Based on models/sentetik_model.py - Implements advanced feature engineering
-"""
+
 import joblib
 import pandas as pd
 import numpy as np
@@ -20,7 +17,7 @@ class LightGBMCropPredictor(BasePredictor):
     - Crop → Environment: Optimization considering engineered features
     """
     
-    def __init__(self, model_path: str = "models/sentetik_crop_model.pkl"):
+    def __init__(self, model_path: str = "/ai/models/environment_model.pkl"):
         self.model_path = model_path
         self.model = None
         self.preprocessor = None
@@ -43,9 +40,9 @@ class LightGBMCropPredictor(BasePredictor):
             
             model_bundle = joblib.load(self.model_path)
             
-            self.model = model_bundle['model']
+            self.model = model_bundle['models']
             self.preprocessor = model_bundle['preprocessor']
-            self.label_encoder = model_bundle['label_encoder']
+            self.label_encoder = model_bundle['label_encoders']
             self.classes = model_bundle['classes']
             
             logger.info("✅ LightGBM model loaded successfully")
