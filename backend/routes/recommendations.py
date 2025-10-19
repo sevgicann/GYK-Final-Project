@@ -4,6 +4,7 @@ from models.recommendation import Recommendation
 from models.user import User
 from models.product import Product
 from models.environment import Environment
+from models.average_soil_data import AverageSoilData
 from flask import current_app
 from datetime import datetime
 from utils.logger import log_api_call, get_logger, log_info, log_success
@@ -1209,5 +1210,177 @@ def ml_health_check():
         return jsonify({
             'success': False,
             'status': 'error',
+            'error': str(e)
+        }), 500
+
+@recommendations_bp.route('/average-soil-data', methods=['GET'])
+@log_api_call
+def get_average_soil_data():
+    """Get average soil data based on environmental conditions"""
+    logger = get_logger('routes.recommendations')
+    
+    try:
+        # Get query parameters
+        soil_type = request.args.get('soil_type')
+        region = request.args.get('region')
+        fertilizer_type = request.args.get('fertilizer_type')
+        irrigation_method = request.args.get('irrigation_method')
+        weather_condition = request.args.get('weather_condition')
+        
+        logger.info("=" * 60)
+        logger.info("🌱 AVERAGE SOIL DATA REQUEST:")
+        logger.info(f"  Soil Type: {soil_type}")
+        logger.info(f"  Region: {region}")
+        logger.info(f"  Fertilizer Type: {fertilizer_type}")
+        logger.info(f"  Irrigation Method: {irrigation_method}")
+        logger.info(f"  Weather Condition: {weather_condition}")
+        logger.info(f"  Timestamp: {datetime.now().isoformat()}")
+        logger.info("=" * 60)
+        
+        # Get average soil data with fallback logic
+        average_data = AverageSoilData.get_best_match(
+            soil_type=soil_type,
+            region=region,
+            fertilizer_type=fertilizer_type,
+            irrigation_method=irrigation_method,
+            weather_condition=weather_condition
+        )
+        
+        if average_data:
+            logger.info(f"Found average soil data: {average_data.region}-{average_data.soil_type}")
+            
+            return jsonify({
+                'success': True,
+                'data': average_data.to_dict(),
+                'message': 'Average soil data retrieved successfully'
+            }), 200
+        else:
+            # Return default values if no match found
+            logger.warning("No matching average soil data found, returning defaults")
+            default_values = AverageSoilData.get_default_averages()
+            
+            return jsonify({
+                'success': True,
+                'data': {
+                    'environmental_conditions': {
+                        'soil_type': soil_type,
+                        'region': region,
+                        'fertilizer_type': fertilizer_type,
+                        'irrigation_method': irrigation_method,
+                        'weather_condition': weather_condition
+                    },
+                    'average_values': default_values,
+                    'metadata': {
+                        'data_count': 0,
+                        'is_default': True,
+                        'last_updated': datetime.utcnow().isoformat()
+                    }
+                },
+                'message': 'Using default average values (no specific match found)'
+            }), 200
+            
+    except Exception as e:
+        logger.error(f"Error getting average soil data: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': 'Failed to retrieve average soil data',
+            'error': str(e)
+        }), 500
+
+@recommendations_bp.route('/average-soil-data/all', methods=['GET'])
+@log_api_call
+def get_all_average_soil_data():
+    """Get all available average soil data combinations"""
+    logger = get_logger('routes.recommendations')
+    
+    try:
+        # Get all average soil data
+        all_data = AverageSoilData.query.all()
+        
+        logger.info(f"Retrieved {len(all_data)} average soil data records")
+        
+        return jsonify({
+            'success': True,
+            'data': [record.to_dict() for record in all_data],
+            'count': len(all_data),
+            'message': 'All average soil data retrieved successfully'
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Error getting all average soil data: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': 'Failed to retrieve all average soil data',
+            'error': str(e)
+        }), 500
+
+@recommendations_bp.route('/average-soil-data/refresh', methods=['POST'])
+@jwt_required()
+@log_api_call
+def refresh_average_soil_data():
+    """Refresh average soil data from crop_dataset table"""
+    logger = get_logger('routes.recommendations')
+    
+    try:
+        from app import db
+        
+        # Execute the SQL query to get average data
+        sql_query = """
+        SELECT
+            soil_type,
+            region,
+            fertilizer_type,
+            irrigation_method,
+            weather_condition,
+            AVG("soil_ph"::numeric) AS avg_soil_ph,
+            AVG("nitrogen"::numeric) AS avg_nitrogen,
+            AVG("phosphorus"::numeric) AS avg_phosphorus,
+            AVG("potassium"::numeric) AS avg_potassium,
+            AVG("moisture"::numeric) AS avg_moisture,
+            AVG("temperature_celsius"::numeric) AS avg_temperature_celsius,
+            AVG("rainfall_mm"::numeric) AS avg_rainfall_mm
+        FROM
+            crop_dataset
+        GROUP BY
+            soil_type,
+            region,
+            fertilizer_type,
+            irrigation_method,
+            weather_condition
+        ORDER BY
+            region ASC,
+            soil_type ASC,
+            fertilizer_type ASC,
+            irrigation_method ASC,
+            weather_condition ASC
+        """
+        
+        result = db.session.execute(sql_query)
+        sql_results = [dict(row) for row in result]
+        
+        logger.info(f"SQL query returned {len(sql_results)} records")
+        
+        # Bulk insert the results
+        success = AverageSoilData.bulk_insert_from_sql_result(sql_results)
+        
+        if success:
+            logger.info("Successfully refreshed average soil data")
+            return jsonify({
+                'success': True,
+                'message': 'Average soil data refreshed successfully',
+                'records_updated': len(sql_results)
+            }), 200
+        else:
+            logger.error("Failed to refresh average soil data")
+            return jsonify({
+                'success': False,
+                'message': 'Failed to refresh average soil data'
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"Error refreshing average soil data: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': 'Failed to refresh average soil data',
             'error': str(e)
         }), 500

@@ -59,6 +59,7 @@ log_info("Importing API routes")
 from routes.auth import auth_bp
 from routes.users import users_bp
 from routes.products import products_bp
+from routes.public import public_bp
 from routes.environments import environments_bp
 from routes.recommendations import recommendations_bp
 from routes.ml_endpoints import ml_bp
@@ -69,6 +70,7 @@ log_info("Registering API routes")
 app.register_blueprint(auth_bp, url_prefix='/api/auth')
 app.register_blueprint(users_bp, url_prefix='/api/users')
 app.register_blueprint(products_bp, url_prefix='/api/products')
+app.register_blueprint(public_bp, url_prefix='/api/public')
 app.register_blueprint(environments_bp, url_prefix='/api/environments')
 app.register_blueprint(recommendations_bp, url_prefix='/api/recommendations')
 app.register_blueprint(ml_bp, url_prefix='/api/ml')
@@ -417,12 +419,7 @@ def invalid_token_callback(error):
         'message': 'Invalid token'
     }), 401
 
-@jwt.unauthorized_loader
-def missing_token_callback(error):
-    return jsonify({
-        'success': False,
-        'message': 'Authorization token is required'
-    }), 401
+# JWT unauthorized loader removed - authentication handled per endpoint
 
 # Initialize database and ML service when app starts
 with app.app_context():
