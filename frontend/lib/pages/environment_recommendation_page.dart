@@ -262,69 +262,69 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
 
     // Zorunlu çevre verilerini kontrol et
     if (_selectedRegion == null || _selectedRegion!.isEmpty) {
-      errors['region'] = 'Bölge seçiniz';
+      errors['region'] = 'Bu alanı doldurunuz';
       isValid = false;
     }
 
     if (_selectedSoilType == null || _selectedSoilType!.isEmpty) {
-      errors['soilType'] = 'Toprak tipi seçiniz';
+      errors['soilType'] = 'Bu alanı doldurunuz';
       isValid = false;
     }
 
     if (_selectedFertilizer == null || _selectedFertilizer!.isEmpty) {
-      errors['fertilizer'] = 'Gübre tipi seçiniz';
+      errors['fertilizer'] = 'Bu alanı doldurunuz';
       isValid = false;
     }
 
     if (_selectedIrrigation == null || _selectedIrrigation!.isEmpty) {
-      errors['irrigation'] = 'Sulama yöntemi seçiniz';
+      errors['irrigation'] = 'Bu alanı doldurunuz';
       isValid = false;
     }
 
     if (_selectedSunlight == null || _selectedSunlight!.isEmpty) {
-      errors['sunlight'] = 'Güneş ışığı durumu seçiniz';
+      errors['sunlight'] = 'Bu alanı doldurunuz';
       isValid = false;
     }
 
     // Konum kontrolü
     if (!_isGpsSelected && !_isManualSelected) {
-      errors['location'] = 'Konum seçiniz (GPS veya Manuel)';
+      errors['location'] = 'Bu alanı doldurunuz';
       isValid = false;
     }
 
     if (_isManualSelected && (_selectedCity == null || _selectedCity!.isEmpty)) {
-      errors['city'] = 'Şehir seçiniz';
+      errors['city'] = 'Bu alanı doldurunuz';
       isValid = false;
     }
 
     // Toprak parametreleri kontrolü (sadece manuel giriş seçiliyse)
     if (_isManualEntry && !_useAverageValues) {
       if (_phController.text.isEmpty) {
-        errors['ph'] = 'pH değeri giriniz';
+        errors['ph'] = 'Bu alanı doldurunuz';
         isValid = false;
       }
       if (_nitrogenController.text.isEmpty) {
-        errors['nitrogen'] = 'Azot değeri giriniz';
+        errors['nitrogen'] = 'Bu alanı doldurunuz';
         isValid = false;
       }
       if (_phosphorusController.text.isEmpty) {
-        errors['phosphorus'] = 'Fosfor değeri giriniz';
+        errors['phosphorus'] = 'Bu alanı doldurunuz';
         isValid = false;
       }
       if (_potassiumController.text.isEmpty) {
-        errors['potassium'] = 'Potasyum değeri giriniz';
+        errors['potassium'] = 'Bu alanı doldurunuz';
         isValid = false;
       }
       if (_humidityController.text.isEmpty) {
-        errors['humidity'] = 'Nem değeri giriniz';
+        errors['humidity'] = 'Bu alanı doldurunuz';
         isValid = false;
       }
       if (_temperatureController.text.isEmpty) {
-        errors['temperature'] = 'Sıcaklık değeri giriniz';
+        errors['temperature'] = 'Bu alanı doldurunuz';
         isValid = false;
       }
       if (_rainfallController.text.isEmpty) {
-        errors['rainfall'] = 'Yağış değeri giriniz';
+        errors['rainfall'] = 'Bu alanı doldurunuz';
         isValid = false;
       }
     }
@@ -506,12 +506,12 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
               // Başarı mesaj sonuçları göster
               if (_scaffoldMessenger != null) {
                 _scaffoldMessenger!.showSnackBar(
-                  SnackBar(
+                  const SnackBar(
                     content: Text(
-                      'ML modeli başarıyla çalıştı! ${mlRecommendedProducts.length} ürün önerisi alındı (${modelUsed ?? "XGBoost"} modeli)'
+                      '✅ Öneriler hesaplandı! En uygun ürünler belirlendi.'
                     ),
                     backgroundColor: Colors.green,
-                    duration: const Duration(seconds: 4),
+                    duration: Duration(seconds: 3),
                   ),
                 );
               }
@@ -1637,6 +1637,22 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
       );
     }
 
+    // Ürünleri confidence score'a göre sırala (büyükten küçüğe)
+    List<Map<String, dynamic>> sortedProducts = [];
+    for (int i = 0; i < _recommendedProducts.length; i++) {
+      final confidenceScore = i < _mlConfidenceScores.length 
+          ? _mlConfidenceScores[i] 
+          : 0.0;
+      sortedProducts.add({
+        'product': _recommendedProducts[i],
+        'confidence': confidenceScore,
+        'originalIndex': i,
+      });
+    }
+    
+    // Confidence score'a göre sırala (büyükten küçüğe)
+    sortedProducts.sort((a, b) => b['confidence'].compareTo(a['confidence']));
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1653,12 +1669,11 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
         ListView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          itemCount: _recommendedProducts.length,
+          itemCount: sortedProducts.length,
           itemBuilder: (context, index) {
-            final product = _recommendedProducts[index];
-            final confidenceScore = index < _mlConfidenceScores.length 
-                ? _mlConfidenceScores[index] 
-                : 0.0;
+            final productData = sortedProducts[index];
+            final product = productData['product'];
+            final confidenceScore = productData['confidence'];
             
             return Padding(
               padding: const EdgeInsets.only(bottom: AppTheme.paddingSmall),
@@ -2000,16 +2015,8 @@ class _EnvironmentRecommendationPageState extends State<EnvironmentRecommendatio
 
   /// Sıralama pozisyonuna göre renk döndür
   Color _getRankingColor(int index) {
-    switch (index) {
-      case 0:
-        return Colors.amber; // Altın - 1.
-      case 1:
-        return Colors.grey[600]!; // Gümüş - 2.
-      case 2:
-        return Colors.orange[700]!; // Bronz - 3.
-      default:
-        return AppTheme.primaryColor;
-    }
+    // Tüm sıralama numaraları yeşil yuvarlak daire içinde aynı renk
+    return AppTheme.primaryColor;
   }
 
   /// Güven skoruna göre renk döndür
